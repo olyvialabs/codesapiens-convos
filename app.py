@@ -22,7 +22,9 @@ def process_uploaded_files():
     # 2. Generate md per function per project
     # 3. Generate faiss index
     queue_item = index_project_files.delay()
-    return {"status": "processing", "process_id": queue_item.id}
+    process_status = get_process_status(queue_item.id)
+    print(process_status)
+    return {"status": "STARTED", "process_id": queue_item.id}
 
 
 # User connectes repo

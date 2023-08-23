@@ -7,11 +7,11 @@ from typing import Callable, Dict, List, Optional, Union
 
 from parser.file.base import BaseReader
 from parser.file.base_parser import BaseParser
-"""from parser.file.docs_parser import DocxParser, PDFParser
-from parser.file.epub_parser import EpubParser
-from parser.file.html_parser import HTMLParser
-from parser.file.rst_parser import RstParser
-from parser.file.tabular_parser import PandasCSVParser"""
+# from parser.file.docs_parser import DocxParser, PDFParser
+# from parser.file.epub_parser import EpubParser
+# from parser.file.html_parser import HTMLParser
+# from parser.file.rst_parser import RstParser
+# from parser.file.tabular_parser import PandasCSVParser
 
 DEFAULT_FILE_EXTRACTOR: Dict[str, BaseParser] = {
     # ".pdf": PDFParser(),
@@ -21,7 +21,7 @@ DEFAULT_FILE_EXTRACTOR: Dict[str, BaseParser] = {
     ".md": MarkdownParser(),
     # ".rst": RstParser(),
     # ".html": HTMLParser(),
-    # ".mdx": MarkdownParser(),
+    ".mdx": MarkdownParser(),
 }
 
 
@@ -119,7 +119,7 @@ class DirectoryIterator(BaseReader):
 
         # print total number of files added
         logging.debug(
-            f"> [SimpleDirectoryReader] Total files added: {len(new_input_files)}"
+            f"> [DirectoryIterator] Total files added: {len(new_input_files)}"
         )
 
         return new_input_files
