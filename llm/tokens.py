@@ -64,6 +64,7 @@ def split_documents(docs: List[Document]) -> List[Document]:
 
 def group_and_partition_documents(documents: List[Document]):
     print("Grouping small documents")
+    print(documents)
     try:
         documents = group_documents(documents=documents)
     except Exception:

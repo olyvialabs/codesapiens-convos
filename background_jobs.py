@@ -28,28 +28,27 @@ def get_metadata_from_filename(title):
 def index_project_files(self):
     print(celery.autodiscover_tasks())
     self.update_state(state='STARTING')
-    full_path = './temp/test-code'
+    full_path = './outputs'
     reader_params = {
         'input_dir': full_path,
         'input_files': None,
         'recursive': True,
-        'required_exts': ['.js'],
+        'required_exts': ['.md'],  # ['.js'],
         'num_files_limit': None,
         'exclude_hidden': True,
         'file_metadata': get_metadata_from_filename
     }
 
-    result = extract_functions_and_classes(
+    functions_dict, classes_dict = extract_functions_and_classes(
         './temp/test-code')
-    print(result)
-    transform_to_docs(result[0], result[1], './temp/test-code')
-    return
+    # transform_to_docs(functions_dict, classes_dict, './temp/test-code')
     raw_docs = DirectoryIterator(**reader_params).load_data()
+
     self.update_state(state='PROGRESS')
-    # raw_docs = group_and_partition_documents(documents=raw_docs)
-    # parsed_docs = [Document.to_langchain_format(
-    #    raw_doc) for raw_doc in raw_docs]
-    # embeed_md_files_to_store(docs=parsed_docs)
+    raw_docs = group_and_partition_documents(documents=raw_docs)
+    parsed_docs = [Document.to_langchain_format(
+        raw_doc) for raw_doc in raw_docs]
+    embeed_md_files_to_store(docs=parsed_docs)
 
     self.update_state(state='FINISHED')
 

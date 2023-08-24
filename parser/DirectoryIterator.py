@@ -81,7 +81,6 @@ class DirectoryIterator(BaseReader):
         if input_files:
             self.input_files = []
             for path in input_files:
-                print(path)
                 input_file = Path(path)
                 self.input_files.append(input_file)
         elif input_dir:

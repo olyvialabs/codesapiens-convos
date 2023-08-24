@@ -83,10 +83,8 @@ def extract_functions_and_classes(directory):
     files = find_files(directory)
     functions_dict = {}
     classes_dict = {}
-    print("this far")
     modules_dict = {}
     for file in files:
-        print("this far v2")
         functions = extract_functions(file)
         if functions:
             functions_dict[file] = functions
