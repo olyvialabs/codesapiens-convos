@@ -8,6 +8,8 @@ from celery.utils.log import get_task_logger
 from llm.embeeding import embeed_md_files_to_store
 from llm.tokens import group_and_partition_documents
 from parser.file.ProjectStructure import ProjectStructure
+from pathlib import Path
+
 logger = get_task_logger(__name__)
 
 celery = Celery()
@@ -45,11 +47,15 @@ def index_project_files(self):
     #    './temp/test-code')
     # transform_to_docs(functions_dict, classes_dict, './temp/test-code')
     # raw_docs = DirectoryIterator(**reader_params).load_data()
-
+    folder_path = ProjectStructure(target_path='outputs')
+    all_files = folder_path.get_all_files()
     self.update_state(state='PROGRESS')
-    raw_docs = group_and_partition_documents(documents=raw_docs)
+    raw_docs = []
+    for file in all_files:
+        raw_docs.append(file.get_content(file.path))
+    raw_docs_v2 = group_and_partition_documents(documents=raw_docs)
     parsed_docs = [Document.to_langchain_format(
-        raw_doc) for raw_doc in raw_docs]
+        raw_doc) for raw_doc in raw_docs_v2]
     embeed_md_files_to_store(docs=parsed_docs)
 
     self.update_state(state='FINISHED')

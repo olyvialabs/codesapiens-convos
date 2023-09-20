@@ -5,6 +5,7 @@ The name of the app is "{app_name}", of this list of files and folders, what do 
 Return this information in JSON.
 In the json there should be a property, isConfig: true or false.
 Find one or more config that is applications specific config file(s) then add property isAppSpecific: true, else false.
+If isConfig and isAppSpecific is false, and the file is code related, add property isCodeRelated: true, else false.
 
 This is the json scheme:
-[ {{ "path":"folder/fileName", "isConfig":bool, "isAppSpecific": bool }}, {{ ... }} ]
+[ {{ "path":"folder/fileName", "isConfig":bool, "isAppSpecific":bool, "isCodeRelated":bool }}, {{ ... }} ]

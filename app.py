@@ -44,22 +44,18 @@ def stream():
 
 @app.route("/api/test", methods=["GET"])
 def test():
-    target = 'temp'  # ,./outputs'
-    project_name = '0xpasho/codesapiens'
-    project = ProjectStructure(target_path=target)
-    all_files = project.get_all_files()
+    project_name = '0xpasho|codesapiens'
+    temp_folder = 'temp'  # ,./outputs'
+    project = ProjectStructure(target_path=temp_folder+'/'+project_name)
 
-    project_full_path = os.getcwd() + '/' + target
+    project_full_path = os.getcwd() + '/' + temp_folder + '/' + project_name
     project_main_folder = FolderStructure(project_full_path)
 
-    generate_documentation_to_all_inner_folders(project)
-    return 'xd'
     list_of_files_concatenated = ''
     for file_structure in project_main_folder.files:
         list_of_files_concatenated += file_structure.path + '\n'
     config_list = get_gpt_response_from_template(
         data={'app_name': project_name, 'trimmable_content': list_of_files_concatenated}, template='what_are_these_config_files', trim_content=True)
-    config_list = config_list
     config_list = json.loads(config_list)
     print(config_list)
     generate_root_config_files(

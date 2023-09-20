@@ -1,0 +1,13 @@
+Act as a documentation expert. Write in-depth documentation about the content of the app.
+
+Header of the file should be "{file_name}".
+Divide the document into sections with clear headings and subheadings.
+
+List each file and folder into its own section.
+Write high level information in each section, DO NOT generate code examples(only if there is in information sent).
+Link each section to its own documentation. The format of the link is simply the name of the folder or file.
+
+Here is file content that you need
+###
+{trimmable_content}
+###

@@ -14,11 +14,14 @@ def get_tokens_length(text, encoding_base=models['gpt-3.5-turbo'].encoding_base)
     return len(tiktoken.get_encoding(encoding_base).encode(text))
 
 
-def group_documents(docs: List[Document]) -> List[Document]:
+def group_documents(docs) -> List[Document]:
     temp_docs = []
     current_group = None
 
     for doc in docs:
+        current_group = Document(text=doc)
+        temp_docs.append(current_group)
+        continue
         doc_len = get_tokens_length(doc.text)
 
         if current_group is None:

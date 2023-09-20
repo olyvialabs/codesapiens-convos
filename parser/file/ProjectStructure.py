@@ -11,8 +11,9 @@ class ProjectStructure:
     def get_structure(self):
         return self.folder_structure
 
-    def get_all_files(self):
-        files = self.folder_structure.files
+    def get_all_files(self, keep_root_files=True):
+        if not keep_root_files:
+            files = self.folder_structure.files
         for folder in self.folder_structure.folders:
             files.extend(self._get_subfiles(folder))
         return files

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from parser.file.FileStructure import FileStructure
 from config.exclude_file_by_extension import excluded_list_combined
+from config.exclude_by_filename import exclude_file_list_by_filename
 
 
 class FolderStructure:
@@ -40,10 +41,18 @@ class FolderStructure:
     def should_exclude(file_or_folder_path):
         path_object = Path(file_or_folder_path)
         file_size_in_bytes = path_object.stat().st_size
+        doc_exceds_size = file_size_in_bytes > 0.5 * 1024 * 1024  # 1/2 MB
 
-        doc_exceds_size = file_size_in_bytes > 1 * 1024 * 1024  # 1 MB
+        if doc_exceds_size:
+            return True
+
+        filename = path_object.name
+        filename_excluded = filename in exclude_file_list_by_filename
+        if filename_excluded:
+            return True
+
         extension = path_object.suffix[1:]  # remove the dot
-        return doc_exceds_size or extension in excluded_list_combined
+        return extension in excluded_list_combined
 
     @staticmethod
     def should_document(file_or_folder_path, is_directory):

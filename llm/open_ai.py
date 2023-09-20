@@ -60,7 +60,6 @@ def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens
     while prompt_length > max_tokens or prompt_length == 0:
         prompt_template = PromptTemplate.from_template(question_template)
         data['trimmable_content'] = file_content
-        print(data)
         prompt_template = prompt_template.format(
             **data)
         prompt_length = get_tokens_length(prompt_template)
