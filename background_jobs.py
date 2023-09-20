@@ -1,12 +1,13 @@
 from celery import Celery
 from celery.result import AsyncResult
 from parser.schema.base import Document
-from parser.code.base import transform_to_docs
-from parser.code.javascript import extract_functions_and_classes
-from parser.DirectoryIterator import DirectoryIterator
+# from parser.code.base import transform_to_docs
+# from parser.code.javascript import extract_functions_and_classes
+# from parser.DirectoryIterator import DirectoryIterator
 from celery.utils.log import get_task_logger
 from llm.embeeding import embeed_md_files_to_store
 from llm.tokens import group_and_partition_documents
+from parser.file.ProjectStructure import ProjectStructure
 logger = get_task_logger(__name__)
 
 celery = Celery()
@@ -28,21 +29,22 @@ def get_metadata_from_filename(title):
 def index_project_files(self):
     print(celery.autodiscover_tasks())
     self.update_state(state='STARTING')
-    full_path = './outputs'
-    reader_params = {
-        'input_dir': full_path,
-        'input_files': None,
-        'recursive': True,
-        'required_exts': ['.md'],  # ['.js'],
-        'num_files_limit': None,
-        'exclude_hidden': True,
-        'file_metadata': get_metadata_from_filename
-    }
+    # full_path = 'temp'  # ,./outputs'
 
-    functions_dict, classes_dict = extract_functions_and_classes(
-        './temp/test-code')
+    # reader_params = {
+    #     'input_dir': full_path,
+    #     'input_files': None,
+    #     'recursive': True,
+    #     'required_exts': ['.md'],  # ['.js'],
+    #     'num_files_limit': None,
+    #     'exclude_hidden': True,
+    #     'file_metadata': get_metadata_from_filename
+    # }
+
+    # functions_dict, classes_dict = extract_functions_and_classes(
+    #    './temp/test-code')
     # transform_to_docs(functions_dict, classes_dict, './temp/test-code')
-    raw_docs = DirectoryIterator(**reader_params).load_data()
+    # raw_docs = DirectoryIterator(**reader_params).load_data()
 
     self.update_state(state='PROGRESS')
     raw_docs = group_and_partition_documents(documents=raw_docs)

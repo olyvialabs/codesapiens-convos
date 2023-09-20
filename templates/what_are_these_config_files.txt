@@ -1,0 +1,10 @@
+The name of the app is "{app_name}", of this list of files and folders, what do you consider as being config files
+
+{trimmable_content}
+
+Return this information in JSON.
+In the json there should be a property, isConfig: true or false.
+Find one or more config that is applications specific config file(s) then add property isAppSpecific: true, else false.
+
+This is the json scheme:
+[ {{ "path":"folder/fileName", "isConfig":bool, "isAppSpecific": bool }}, {{ ... }} ]

@@ -7,7 +7,6 @@ from config.settings import settings
 from retry import retry
 import openai
 
-output_folder = "outputs"
 
 with open("templates/chat_combine_prompt.txt", "r") as f:
     chat_combine_template = f.read()
@@ -23,13 +22,17 @@ def store_add_texts_with_retry(store, i):
 def get_vector_doc_store(vectorstore):
     openai_embeddings = OpenAIEmbeddings(
         openai_api_key=settings.OPENAI_API_KEY)
-    docsearch = FAISS.load_local(vectorstore, openai_embeddings)
+    docsearch = FAISS.load_local("outputs", openai_embeddings)  # vectorstore
     return docsearch
+
+
+def generate_embeed_data_from_file():
+    return
 
 
 def get_stream_answer(question, docsearch, chat_history, conversation_id):
     llm = ChatOpenAI(openai_api_key=settings.OPENAI_API_KEY)
-    docs = docsearch.similarity_search(question, k=2)
+    docs = docsearch.similarity_search(question)  # , k=2)
     # join all page_content together with a newline
     docs_together = "\n".join([doc.page_content for doc in docs])
     p_chat_combine = chat_combine_template.replace(
@@ -109,8 +112,8 @@ def get_stream_answer(question, docsearch, chat_history, conversation_id):
 
 def embeed_md_files_to_store(docs):
     # create output folder if it doesn't exist
-    if not os.path.exists(f"{output_folder}"):
-        os.makedirs(f"{output_folder}")
+    if not os.path.exists(f"{settings.output_folder}"):
+        os.makedirs(f"{settings.output_folder}")
 
     init_doc_store_files = [docs[0]]
     docs.pop(0)
@@ -128,8 +131,8 @@ def embeed_md_files_to_store(docs):
             print("Error on ", current_doc)
             print("Saving progress")
             print(f"stopped at {current_doc_index} out of {len(docs)}")
-            store.save_local(f"{output_folder}")
+            store.save_local(f"{settings.output_folder}")
             break
         current_doc_index += 1
-    store.save_local(f"{output_folder}")
+    store.save_local(f"{settings.output_folder}")
     # store.add_texts([i.page_content], metadatas=[i.metadata])
