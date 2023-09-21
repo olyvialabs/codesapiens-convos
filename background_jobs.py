@@ -9,6 +9,7 @@ from llm.embeeding import embeed_md_files_to_store
 from llm.tokens import group_and_partition_documents
 from parser.file.ProjectStructure import ProjectStructure
 from pathlib import Path
+from config.settings import settings
 
 logger = get_task_logger(__name__)
 
@@ -47,8 +48,11 @@ def index_project_files(self):
     #    './temp/test-code')
     # transform_to_docs(functions_dict, classes_dict, './temp/test-code')
     # raw_docs = DirectoryIterator(**reader_params).load_data()
-    folder_path = ProjectStructure(target_path='outputs')
-    all_files = folder_path.get_all_files()
+   # Generate documentation for all folders
+    project_name = '0xpasho|codesapiens'
+    output_project = ProjectStructure(
+        target_path=settings.output_folder+'/'+project_name)
+    all_files = output_project.get_all_files()
     self.update_state(state='PROGRESS')
     raw_docs = []
     for file in all_files:

@@ -1,10 +1,10 @@
 # formActionController.js
 
-This file contains the implementation of the form action controller, which is responsible for handling form action-related requests and interacting with the form action model.
+## Description
+The `formActionController.js` file is a JavaScript module that contains functions for handling form actions in a web application. It exports several methods that interact with the `formActionModel` module to perform CRUD operations on form actions in a database. This file is typically used as a controller in an Express.js application.
 
 ## Examples
-
-Here are some examples of how to use the form action controller:
+Here are some examples of how to use the `formActionController` class:
 
 1. Adding a new form action:
 ```javascript
@@ -13,7 +13,7 @@ const request = {
     idform: 1,
     x_position: 100,
     y_position: 200,
-    information: "Sample form action"
+    information: "Submit form"
   }
 };
 
@@ -30,11 +30,11 @@ const response = {
   }
 };
 
-const next = (error) => {
-  console.error(error);
+const next = () => {
+  console.log("Next route function");
 };
 
-addFormAction(request, response, next);
+formActionController.addFormAction(request, response, next);
 ```
 
 2. Getting all actions of a specific form:
@@ -51,11 +51,11 @@ const response = {
   }
 };
 
-const next = (error) => {
-  console.error(error);
+const next = () => {
+  console.log("Next route function");
 };
 
-getAllFormActions(request, response, next);
+formActionController.getAllFormActions(request, response, next);
 ```
 
 3. Updating a form action information:
@@ -82,11 +82,11 @@ const response = {
   }
 };
 
-const next = (error) => {
-  console.error(error);
+const next = () => {
+  console.log("Next route function");
 };
 
-updateFormActions(request, response, next);
+formActionController.updateFormActions(request, response, next);
 ```
 
 4. Deleting a form action:
@@ -110,11 +110,11 @@ const response = {
   }
 };
 
-const next = (error) => {
-  console.error(error);
+const next = () => {
+  console.log("Next route function");
 };
 
-deleteFormAction(request, response, next);
+formActionController.deleteFormAction(request, response, next);
 ```
 
 ## Methods
@@ -122,6 +122,7 @@ deleteFormAction(request, response, next);
 ### addFormAction(request, response, next)
 Adds a new form action in the database.
 
+#### Parameters
 - `request` (object): JSON that contains all the information from the `POST` request.
   - `request.body` (object): Data sent from the client.
     - `request.body.idform` (number): Form ID.
@@ -134,6 +135,7 @@ Adds a new form action in the database.
 ### getAllFormActions(request, response, next)
 Gets all the actions of a specific form.
 
+#### Parameters
 - `request` (object): JSON that contains all the information from the `GET` request.
   - `request.params` (object): Request parameters.
     - `request.params.idform` (number): Form ID.
@@ -143,6 +145,7 @@ Gets all the actions of a specific form.
 ### updateFormActions(request, response, next)
 Updates a form action information in the database.
 
+#### Parameters
 - `request` (object): JSON that contains all the information from the `PUT` request.
   - `request.params` (object): Request parameters.
     - `request.params.idaction` (number): Form action ID.
@@ -154,6 +157,7 @@ Updates a form action information in the database.
 ### deleteFormAction(request, response, next)
 Updates a form action status to zero.
 
+#### Parameters
 - `request` (object): JSON that contains all the information from the `DELETE` request.
   - `request.params` (object): Request parameters.
     - `request.params.idaction` (number): Form action ID.
@@ -161,10 +165,5 @@ Updates a form action status to zero.
 - `next` (function): Express method that jumps into the next route function.
 
 ## Technical Concepts
-
-- Express: Express is a popular web application framework for Node.js. It provides a set of features for building web applications and APIs, including routing, middleware, and request/response handling.
-- JSON: JSON (JavaScript Object Notation) is a lightweight data interchange format that is easy for humans to read and write and easy for machines to parse and generate. It is often used for transmitting data between a server and a web application, as well as storing configuration or data files.
-
----
-
-Please note that this documentation assumes familiarity with JavaScript, Node.js, and Express.
+- Express.js: Express is a minimal and flexible Node.js web application framework that provides a robust set of features for web and mobile applications.
+- JSON: JSON (JavaScript Object Notation) is a lightweight data interchange format that is easy for humans to read and write and easy for machines to parse and generate. It is based on a subset of the JavaScript Programming Language Standard ECMA-262 3rd Edition - December 1999. JSON is a text format that is completely language independent but uses conventions that are familiar to programmers of the C-family of languages, including C, C++, C#, Java, JavaScript, Perl, Python, and many others. These properties make JSON an ideal data-interchange language.

@@ -1,19 +1,13 @@
 Act as a documentation expert. Write in-depth documentation about following file.
 Headline of file should be "{file_name}"
-The file name is: {file_name}
-The first section must be the description.
-If this is a code file, then
+The file name is: {file_name} and is in the root folder, so, it probably is either initialization or configuration files.
+Then:
 - Write a detailed description of the code that will follow.
-- Give multiple examples of how to use this class before listing each method
+- Write deep observations of the file.
 - Create a description for each method in the code.
 - List out the parameters in methods (only if there are any) and describe each parameter.
 - Explain technical concepts that are not standard but come apparent in the code. Example of a standard concept is JSON.
 - Divide the document into sections with clear headings and subheadings.
-If this is a template file
-- List the variables that are used in the template file
-- Display the template file
-Else
-- Write a detailed description of the file content that will follow.
 
 This is the content of the file:
 ###

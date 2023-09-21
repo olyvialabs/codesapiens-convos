@@ -50,14 +50,14 @@ def generate_prompt_by_template(data={}, template: str = '') -> PromptTemplate:
 
 
 def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens: int = models['gpt-3.5-turbo'].max_token):
-    # TODO: remover cierta cantidad de caracteres del final del file_content
-    # despues de cierto limite solo para estar seguro de que no se pase de los tokens
-    # porque ya ha habido casos que tiktoken no calcjula bien
-    # por ejemplo: para el gpt-3.5-turbo, endado caso que sea > 3900 retarle unos 100 tokens menos
+    # tiktoken doesn't work correctly, and we need to trim the content
+    # to fit the max_tokens
+    # 90% of max_tokens, as a safe measure
+    optimistic_max_tokens = max_tokens * 0.95
     question_template = get_template(template)
     prompt_length = 0
     file_content = data['trimmable_content']
-    while prompt_length > max_tokens or prompt_length == 0:
+    while prompt_length > optimistic_max_tokens or prompt_length == 0:
         prompt_template = PromptTemplate.from_template(question_template)
         data['trimmable_content'] = file_content
         prompt_template = prompt_template.format(
@@ -69,12 +69,11 @@ def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens
 
 
 # save_to is a relative path, not absolute. value example : '/Configuration'
-def get_gpt_response_from_template(data={}, template: str = '', model=models['gpt-3.5-turbo'].name, max_tokens=models['gpt-3.5-turbo'].max_token, trim_content: bool = False, trim_path: str = '', save_to_subfolder: str = '', save_to_name: str = ''):
+def get_gpt_response_from_template(data={}, template: str = '', model=models['gpt-3.5-turbo'].name, max_tokens=models['gpt-3.5-turbo'].max_token, trim_content: bool = False, ignore_output_folder_on_save: bool = False, trim_path: str = '', save_to_subfolder: str = '', save_to_name: str = ''):
     if not template:
         raise ValueError("Template name is required")
     if trim_content:
         # Only replace if path is provided
-        print(f"Trim path: {trim_path}")
         if trim_path:
             data['trimmable_content'] = get_file(trim_path)
         prompt = generate_prompt_and_fit_file_content(
@@ -88,11 +87,16 @@ def get_gpt_response_from_template(data={}, template: str = '', model=models['gp
     print(f"{datetime.now().strftime('%H:%M:%S')} - Asking answer with template {template}")
     response = llm.query(prompt)
     print(f"{datetime.now().strftime('%H:%M:%S')} - Received answer with template {template}")
-    print(f"{settings.output_folder} tf? {save_to_subfolder}")
     if save_to_subfolder and save_to_name:
-        folder_to_save_path = f'{settings.output_folder}/{save_to_subfolder}'
-        Path(folder_to_save_path).mkdir(parents=True, exist_ok=True)
+        saving_path = ''
+        if ignore_output_folder_on_save:
+            saving_path = f'{save_to_subfolder}'
+            print(f"Saving to: {saving_path}")
+        else:
+            saving_path = f'{settings.output_folder}/{save_to_subfolder}'
+            print(f"Saving to: {saving_path}")
+        Path(saving_path).mkdir(parents=True, exist_ok=True)
 
-        with open(f"{folder_to_save_path}/{save_to_name}", "w") as f:
+        with open(f"{saving_path}/{save_to_name}", "w") as f:
             f.write(response)
     return response

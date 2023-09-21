@@ -1,0 +1,22 @@
+Act as a documentation expert and write detailed summary of a package.json file.
+Divide the document into sections with clear headings and subheadings.
+Include the following:
+Title, Description,
+Getting Started by installing npm package, how to run it with npx
+Configuration is optional and will be generated on first run
+Reporting bugs, repository and homepage
+Versioning
+Authors
+License
+Dependencies with version
+
+This is the partial information of the file:
+Name: {name}
+Description: {description}
+version: {version}
+Homepage: {homepage}
+Author: {author}
+License: {license}
+###
+{trimmable_content}
+###

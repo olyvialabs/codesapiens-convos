@@ -6,15 +6,15 @@ class FileStructure:
 
     def __init__(self, dir, entry, depth):
         self.name = entry.name
-        project_path = Path.cwd()
-        self.path = os.path.relpath(
-            os.path.join(dir, entry.name), project_path)
+        self.path = os.path.join(dir, entry.name)
+        self.absolute_path = os.getcwd() + '/' + os.path.join(dir, entry.name)
+
         self.entry = entry
         self.depth = depth
         self.directory = dir
 
     @staticmethod
-    def get_content(path_str):
+    def get_content(path_str: str):
         if not os.path.exists(path_str):
             print(f"path:{path_str} not found, returning empty string")
             return ''

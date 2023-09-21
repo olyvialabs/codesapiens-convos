@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = None
     OPENAI_MODEL = "gpt-3.5-turbo"  # can be gpt4
     output_folder = "outputs"
+    temp_folder = "temp"
 
 
 path = Path(__file__).parent.parent.absolute()

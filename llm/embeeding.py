@@ -16,7 +16,7 @@ gpt_model = "gpt-3.5-turbo"
 
 @retry(tries=10, delay=60)
 def store_add_texts_with_retry(store, i):
-    store.add_texts([i.page_content], metadatas=[i.metadata])
+    store.add_texts([i.page_content])  # , metadatas=[i.metadata]
 
 
 def get_vector_doc_store(vectorstore):

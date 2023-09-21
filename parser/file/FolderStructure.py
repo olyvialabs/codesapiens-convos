@@ -10,6 +10,7 @@ class FolderStructure:
         self.absolute_path = folder_path
         current_folder = Path(self.absolute_path)
         self.path = str(folder_path)
+        self.absolute_path = os.getcwd() + '/' + str(folder_path)
         self.name = current_folder.name
         self.files = self.get_files(folder_path, depth)
         self.folders = self.get_structure(folder_path, depth + 1)

@@ -4,11 +4,13 @@ from llm.embeeding import get_vector_doc_store, get_stream_answer
 from llm.answer import generate_prompt_answer
 from parser.file.ProjectStructure import ProjectStructure
 from parser.file.FolderStructure import FolderStructure
-from parser.code.ParseCode import generate_root_config_files, generate_documentation_to_all_inner_folders
+from parser.code.ParseCode import generate_root_config_files, generate_documentation_for_project_per_file, generate_documentation_for_project_per_folder
 from llm.open_ai import get_gpt_response_from_template
 from config.settings import settings
-import os
 import json
+from llm.embeeding import embeed_md_files_to_store
+from llm.tokens import group_and_partition_documents
+from parser.schema.base import Document
 
 app = Flask(__name__)
 
@@ -44,24 +46,52 @@ def stream():
 
 @app.route("/api/test", methods=["GET"])
 def test():
+    # Prepare
     project_name = '0xpasho|codesapiens'
-    temp_folder = 'temp'  # ,./outputs'
-    project = ProjectStructure(target_path=temp_folder+'/'+project_name)
+    # Generate indexes
+    output_project_for_indexing = ProjectStructure(
+        target_path=settings.output_folder+'/'+project_name)
+    raw_docs = []
+    all_files = output_project_for_indexing.get_all_files()
+    for file in all_files:
+        raw_docs.append(file.get_content(file.path))
+    raw_docs_v2 = group_and_partition_documents(documents=raw_docs)
+    embeed_md_files_to_store(docs=raw_docs_v2)
+    return 'test'
+    project = ProjectStructure(
+        target_path=settings.temp_folder+'/'+project_name)
+    project_main_folder = FolderStructure(
+        settings.temp_folder+'/'+project_name)
 
-    project_full_path = os.getcwd() + '/' + temp_folder + '/' + project_name
-    project_main_folder = FolderStructure(project_full_path)
-
+    # Generates a JSON with all config files classified
     list_of_files_concatenated = ''
     for file_structure in project_main_folder.files:
-        list_of_files_concatenated += file_structure.path + '\n'
+        list_of_files_concatenated += file_structure.absolute_path + '\n'
     config_list = get_gpt_response_from_template(
         data={'app_name': project_name, 'trimmable_content': list_of_files_concatenated}, template='what_are_these_config_files', trim_content=True)
     config_list = json.loads(config_list)
-    print(config_list)
+
+    # Based on the JSON, generate the documentation for each config file
     generate_root_config_files(
         config_list=config_list, project_name=project_name)
-    generate_documentation_to_all_inner_folders(project)
 
+    # Generate all documentation per file
+    generate_documentation_for_project_per_file(project)
+
+    # Generate documentation for all folders
+    output_project = ProjectStructure(
+        target_path=settings.output_folder+'/'+project_name)
+    generate_documentation_for_project_per_folder(output_project)
+
+    # Generate indexes
+    output_project_for_indexing = ProjectStructure(
+        target_path=settings.output_folder+'/'+project_name)
+    raw_docs = []
+    all_files = output_project_for_indexing.get_all_files()
+    for file in all_files:
+        raw_docs.append(file.get_content(file.path))
+    raw_docs_v2 = group_and_partition_documents(documents=raw_docs)
+    embeed_md_files_to_store(docs=raw_docs_v2)
     return 'test'
 
 

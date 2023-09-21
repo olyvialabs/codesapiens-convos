@@ -25,8 +25,8 @@ class Document(BaseDocument):
 
     def to_langchain_format(self) -> LCDocument:
         """Convert struct to LangChain document format."""
-        metadata = self.extra_info or {}
-        return LCDocument(page_content=self.text, metadata=metadata)
+        # metadata = self.extra_info or {}
+        return LCDocument(page_content=self.text)  # , metadata=metadata)
 
     @classmethod
     def from_langchain_format(cls, doc: LCDocument) -> "Document":

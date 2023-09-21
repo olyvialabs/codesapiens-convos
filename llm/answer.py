@@ -99,12 +99,14 @@ def generate_prompt_answer(prompt, vector_store, history):
     sources = vector_store.similarity_search(prompt, k=2)
     sources_doc = []
     for doc in sources:
-        if doc.metadata:
+        sources_doc.append(
+            {'title': doc.page_content, 'text': doc.page_content})
+        """if doc.metadata:
             sources_doc.append(
                 {'title': doc.metadata['title'], 'text': doc.page_content})
         else:
             sources_doc.append(
-                {'title': doc.page_content, 'text': doc.page_content})
+                {'title': doc.page_content, 'text': doc.page_content})"""
     return sources_doc
     result['sources'] = sources_doc
     # TODO: Insert data to db
