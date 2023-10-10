@@ -1,144 +1,127 @@
 # companyController.js
 
 ## Description
-The `companyController.js` file is a module that contains functions for handling company-related operations. It interacts with the `companyModel` module to perform CRUD operations on company data. The functions in this file can be used to retrieve company information, insert a new company, update an existing company, delete a company, set a company image, and retrieve a company image.
+
+The `companyController.js` file is a module that contains functions for handling company-related operations. It interacts with the `companyModel` module to perform CRUD (Create, Read, Update, Delete) operations on company data. Additionally, it provides functionality for managing company images.
 
 ## Examples
-Here are some examples of how to use the functions in the `companyController.js` file:
 
-1. Retrieve company information:
+Before diving into the details of each method, let's look at some examples of how to use the `companyController` class:
+
+1. Example 1: Get a list of companies with pagination and search filters:
 ```javascript
-const { getCompany } = require('./companyController');
-
-// Example 1: Retrieve all companies
-getCompany(request, response, next);
-
-// Example 2: Retrieve a specific company by ID
-const companyId = 123;
-request.params.id = companyId;
-getCompany(request, response, next);
+GET /companies?searchCompany=example&tablePage=1&tableDisplayLength=10
 ```
 
-2. Insert a new company:
+2. Example 2: Get a specific company by ID:
 ```javascript
-const { insertCompany } = require('./companyController');
-
-const newCompany = {
-  name: 'Example Company',
-  description: 'This is an example company.',
-};
-request.body = newCompany;
-insertCompany(request, response, next);
+GET /companies/123
 ```
 
-3. Update an existing company:
+3. Example 3: Insert a new company:
 ```javascript
-const { updateCompany } = require('./companyController');
-
-const companyId = 123;
-const updatedCompany = {
-  name: 'Updated Company',
-  description: 'This is an updated company.',
-};
-request.params.id = companyId;
-request.body = updatedCompany;
-updateCompany(request, response, next);
+POST /companies
+Body: {
+  "name": "Example Company",
+  "description": "This is an example company"
+}
 ```
 
-4. Delete a company:
+4. Example 4: Update an existing company:
 ```javascript
-const { deleteCompany } = require('./companyController');
-
-const companyId = 123;
-request.params.id = companyId;
-deleteCompany(request, response, next);
+PUT /companies/123
+Body: {
+  "name": "Updated Company",
+  "description": "This is the updated description"
+}
 ```
 
-5. Set a company image:
+5. Example 5: Delete a company:
 ```javascript
-const { setCompanyImage } = require('./companyController');
-
-const companyId = 123;
-request.params.idcompany = companyId;
-request.file = {
-  path: '/path/to/temp/image.png',
-  originalname: 'image.png',
-};
-setCompanyImage(request, response, next);
+DELETE /companies/123
 ```
 
-6. Retrieve a company image:
+6. Example 6: Set a company image:
 ```javascript
-const { getCompanyImage } = require('./companyController');
+POST /companies/123/image
+Body: [multipart/form-data] - file upload
+```
 
-const companyId = 123;
-request.params.idcompany = companyId;
-getCompanyImage(request, response, next);
+7. Example 7: Get a company image:
+```javascript
+GET /companies/123/image
 ```
 
 ## Methods
 
 ### getCompany(request, response, next)
-Retrieves company information based on the provided parameters.
 
-- Parameters:
-  - `request` (object): The request object containing the parameters and body.
-  - `response` (object): The response object to send the retrieved data.
-  - `next` (function): The next middleware function to call.
+This method retrieves company data based on the provided parameters. If an `id` parameter is provided, it fetches a specific company by ID. Otherwise, it returns a list of companies with pagination and search filters.
+
+Parameters:
+- `request` (object): The HTTP request object.
+- `response` (object): The HTTP response object.
+- `next` (function): The next middleware function.
 
 ### insertCompany(request, response, next)
-Inserts a new company into the database.
 
-- Parameters:
-  - `request` (object): The request object containing the company data in the body.
-  - `response` (object): The response object to send the inserted data.
-  - `next` (function): The next middleware function to call.
+This method inserts a new company into the database.
+
+Parameters:
+- `request` (object): The HTTP request object.
+- `response` (object): The HTTP response object.
+- `next` (function): The next middleware function.
 
 ### updateCompany(request, response, next)
-Updates an existing company in the database.
 
-- Parameters:
-  - `request` (object): The request object containing the company ID in the parameters and the updated company data in the body.
-  - `response` (object): The response object to send the updated data.
-  - `next` (function): The next middleware function to call.
+This method updates an existing company in the database.
+
+Parameters:
+- `request` (object): The HTTP request object.
+- `response` (object): The HTTP response object.
+- `next` (function): The next middleware function.
 
 ### deleteCompany(request, response, next)
-Deletes a company from the database.
 
-- Parameters:
-  - `request` (object): The request object containing the company ID in the parameters.
-  - `response` (object): The response object to send the deletion status.
-  - `next` (function): The next middleware function to call.
+This method deletes a company from the database.
+
+Parameters:
+- `request` (object): The HTTP request object.
+- `response` (object): The HTTP response object.
+- `next` (function): The next middleware function.
 
 ### setCompanyImage(request, response, next)
-Sets the image for a company.
 
-- Parameters:
-  - `request` (object): The request object containing the company ID in the parameters and the image file in the `file` property.
-  - `response` (object): The response object to send the image upload status.
-  - `next` (function): The next middleware function to call.
+This method sets the image for a company. It handles file upload and updates the company's image path in the database.
+
+Parameters:
+- `request` (object): The HTTP request object.
+- `response` (object): The HTTP response object.
+- `next` (function): The next middleware function.
 
 ### getCompanyImage(request, response, next)
-Retrieves the image for a company.
 
-- Parameters:
-  - `request` (object): The request object containing the company ID in the parameters.
-  - `response` (object): The response object to send the image file.
-  - `next` (function): The next middleware function to call.
+This method retrieves the image for a company based on the company ID. If the image exists, it sends the image file. Otherwise, it returns a 404 error.
+
+Parameters:
+- `request` (object): The HTTP request object.
+- `response` (object): The HTTP response object.
+- `next` (function): The next middleware function.
 
 ## Technical Concepts
 
-### fs (File System)
-The `fs` module is a built-in Node.js module that provides an API for interacting with the file system. It is used in the `setCompanyImage` function to rename and move the temporary image file to a permanent location.
+### File System (fs)
 
-### path
-The `path` module is a built-in Node.js module that provides utilities for working with file and directory paths. It is used in the `setCompanyImage` function to determine the file extension of the uploaded image and to construct the target path for saving the image.
+The `fs` module is a built-in Node.js module that provides an API for interacting with the file system. In this file, it is used for renaming and deleting temporary image files.
 
-### companyModel
-The `companyModel` module is required in the `companyController.js` file to interact with the database and perform CRUD operations on company data. It is used in various functions to retrieve, insert, update, and delete company records.
+### Path (path)
 
-## Variables (if applicable)
-N/A (This is not a template file)
+The `path` module is another built-in Node.js module that provides utilities for working with file and directory paths. It is used in this file to manipulate file paths and join directory paths.
 
-## Template File (if applicable)
-N/A (This is not a template file)
+## Variables
+
+The `companyController.js` file does not define any variables.
+
+## Template File
+
+This file does not contain a template.

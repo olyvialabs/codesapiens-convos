@@ -3,106 +3,88 @@
 ## Description
 The `departmentController.js` file is a JavaScript module that contains functions for handling department-related operations in a database. It exports several methods that can be used to insert, retrieve, update, and delete department data.
 
-## Examples
+## Usage Examples
 Here are some examples of how to use the `departmentController.js` module:
 
-1. Retrieving all departments in the database:
+1. Retrieve all departments in the database:
 ```javascript
-const departmentController = require("./departmentController");
-
-departmentController.getDepartments(request, response, next);
+GET /departments
 ```
 
-2. Inserting a new department into the database:
+2. Insert a new department into the database:
 ```javascript
-const departmentController = require("./departmentController");
-
-const departmentData = {
-  name: "Marketing",
-};
-
-departmentController.insertDepartment(request, response, next);
+POST /departments
+{
+  "name": "Marketing"
+}
 ```
 
-3. Updating a department's data in the database:
+3. Update an existing department in the database:
 ```javascript
-const departmentController = require("./departmentController");
-
-const departmentId = 1;
-const departmentData = {
-  name: "Sales",
-};
-
-departmentController.updateDepartment(request, response, next);
+PUT /departments/:id
+{
+  "name": "Sales"
+}
 ```
 
-4. Deleting a department from the database:
+4. Delete a department from the database:
 ```javascript
-const departmentController = require("./departmentController");
-
-const departmentId = 1;
-
-departmentController.deleteDepartment(request, response, next);
+DELETE /departments/:id
 ```
 
 ## Methods
 
 ### getDepartments(request, response, next)
-Retrieves all departments in the database.
+This method retrieves all departments from the database.
 
-- Parameters:
-  - `request` (Object): JSON object that contains all the information from the `GET` request.
-  - `response` (Object): Server response to the final user.
-  - `next` (function): Express method that jumps into the next route function.
+#### Parameters
+- `request` (Object): JSON object that contains all the information from the `GET` request.
+- `response` (Object): Server response to the final user.
+- `next` (function): Express method that jumps into the next route function.
 
 ### insertDepartment(request, response, next)
-Inserts a new department into the database.
+This method inserts a new department into the database.
 
-- Parameters:
-  - `request` (Object): JSON object that contains all the information from the `GET` request.
-  - `response` (Object): Server response to the final user.
-  - `next` (function): Express method that jumps into the next route function.
+#### Parameters
+- `request` (Object): JSON object that contains all the information from the `POST` request.
+- `response` (Object): Server response to the final user.
+- `next` (function): Express method that jumps into the next route function.
 
 ### updateDepartment(request, response, next)
-Updates a department's data in the database.
+This method updates an existing department's data in the database.
 
-- Parameters:
-  - `request` (Object): JSON object that contains all the information from the `GET` request.
-  - `response` (Object): Server response to the final user.
-  - `next` (function): Express method that jumps into the next route function.
+#### Parameters
+- `request` (Object): JSON object that contains all the information from the `PUT` request.
+- `response` (Object): Server response to the final user.
+- `next` (function): Express method that jumps into the next route function.
 
 ### deleteDepartment(request, response, next)
-Deletes a department from the database.
+This method deletes a department from the database.
 
-- Parameters:
-  - `request` (Object): JSON object that contains all the information from the `DELETE` request.
-  - `response` (Object): Server response to the final user.
-  - `next` (function): Express method that jumps into the next route function.
+#### Parameters
+- `request` (Object): JSON object that contains all the information from the `DELETE` request.
+- `response` (Object): Server response to the final user.
+- `next` (function): Express method that jumps into the next route function.
 
 ## Technical Concepts
 
 ### JSON Web Token (JWT)
-The `jwt` module is used to handle JSON Web Tokens, which are used for authentication and authorization purposes. It provides functions for generating, signing, and verifying tokens. In this file, the `jwt` module is used to sign and verify tokens using a secret key stored in the `JWT_SECRET` environment variable.
-
-## Dependencies
-
-### jwt
-The `jwt` module is a dependency required for handling JSON Web Tokens.
+The `jwt` module is used to handle JSON Web Tokens in the code. JSON Web Tokens are a compact, URL-safe means of representing claims to be transferred between two parties. They are often used for authentication and authorization purposes in web applications.
 
 ### departmentModel
-The `departmentModel` module is a dependency required for interacting with the department data in the database.
+The `departmentModel` module is required in the code and is used to interact with the database for department-related operations. It provides methods for retrieving, inserting, updating, and deleting department data.
 
-## Usage
-To use the `departmentController.js` module, require it in your JavaScript file and call the desired methods with the appropriate parameters. Make sure to have the required dependencies installed and configured properly.
+### Secret
+The `secret` variable is used to store the JWT secret key. This key is used to sign and verify the JWTs generated by the application. It should be kept secret and not shared publicly.
 
-```javascript
-const departmentController = require("./departmentController");
+## Dependencies
+The `departmentController.js` file has the following dependencies:
+- `jsonwebtoken`: A library for generating and verifying JSON Web Tokens.
+- `departmentModel`: A module for interacting with the database for department-related operations.
 
-// Call the desired methods
-departmentController.getDepartments(request, response, next);
-departmentController.insertDepartment(request, response, next);
-departmentController.updateDepartment(request, response, next);
-departmentController.deleteDepartment(request, response, next);
-```
-
-Remember to replace `request`, `response`, and `next` with the actual objects and functions from your application.
+## Exported Methods
+The `departmentController.js` file exports the following methods:
+- `insertDepartment`: Inserts a new department into the database.
+- `getDepartments`: Retrieves all departments from the database.
+- `deleteDepartment`: Deletes a department from the database.
+- `updateDepartment`: Updates an existing department's data in the database.

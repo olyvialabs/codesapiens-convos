@@ -4,43 +4,45 @@
 smartkaisen-backend
 
 ## Description
-The smartkaisen-backend package.json file is used to manage the dependencies, scripts, and metadata of the Smartkaisen database backend application.
+The smartkaisen-backend package.json file is used to manage the dependencies, scripts, and metadata of the Smartkaisen database backend.
 
 ## Getting Started
 To install the npm package, run the following command:
 ```
 npm install smartkaisen-backend
 ```
-To run the application using npx, use the following command:
+To run the package using npx, use the following command:
 ```
 npx smartkaisen-backend
 ```
 
 ## Configuration
-The configuration for the smartkaisen-backend application is optional and will be automatically generated on the first run of the application.
+The configuration for the smartkaisen-backend package is optional and will be generated automatically on the first run.
 
 ## Reporting Bugs
-To report bugs or issues with the smartkaisen-backend application, please visit the repository's issue tracker on GitHub.
+To report bugs or issues related to the smartkaisen-backend package, please visit the repository's issue tracker on GitHub.
 
 ## Repository
-The source code for the smartkaisen-backend application can be found in the repository specified in the package.json file.
+The source code for the smartkaisen-backend package can be found on the following repository:
+[Repository Link]
 
 ## Homepage
-The homepage for the smartkaisen-backend application is not specified in the package.json file.
+The homepage for the smartkaisen-backend package is currently not specified.
 
 ## Versioning
-The current version of the smartkaisen-backend application is 0.0.1.
+The current version of the smartkaisen-backend package is 0.0.1.
 
 ## Authors
-The author of the smartkaisen-backend application is Bixdy.
+The smartkaisen-backend package is authored by Bixdy.
 
 ## License
-The smartkaisen-backend application is licensed under the ISC license.
+The smartkaisen-backend package is licensed under the ISC license.
 
 ## Dependencies
-The smartkaisen-backend application has the following dependencies with their respective versions:
+The smartkaisen-backend package has the following dependencies with their respective versions:
 - nodemon: [version]
 - express: [version]
 - mongoose: [version]
-- body-parser: [version]
 - dotenv: [version]
+- cors: [version]
+- body-parser: [version]

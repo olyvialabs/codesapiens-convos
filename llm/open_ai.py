@@ -88,15 +88,14 @@ def get_gpt_response_from_template(data={}, template: str = '', model=models['gp
     response = llm.query(prompt)
     print(f"{datetime.now().strftime('%H:%M:%S')} - Received answer with template {template}")
     if save_to_subfolder and save_to_name:
-        saving_path = ''
         if ignore_output_folder_on_save:
-            saving_path = f'{save_to_subfolder}'
-            print(f"Saving to: {saving_path}")
+            saving_path = Path(save_to_subfolder)
         else:
-            saving_path = f'{settings.output_folder}/{save_to_subfolder}'
-            print(f"Saving to: {saving_path}")
-        Path(saving_path).mkdir(parents=True, exist_ok=True)
+            saving_path = Path(settings.output_folder) / save_to_subfolder
 
-        with open(f"{saving_path}/{save_to_name}", "w") as f:
+        saving_path.mkdir(parents=True, exist_ok=True)
+        file_path = saving_path / save_to_name
+
+        with file_path.open("w") as f:
             f.write(response)
     return response
