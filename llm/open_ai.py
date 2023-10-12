@@ -1,14 +1,12 @@
 import os
 from pathlib import Path
-
 import openai
 from langchain.prompts import PromptTemplate
 from config.settings import settings
 from config.open_ai_models import models
 from datetime import datetime
-from typing import Dict
 from llm.tokens import get_tokens_length
-from config.settings import settings
+
 openai.api_key = settings.OPENAI_API_KEY
 
 
@@ -18,84 +16,123 @@ class ConversationlessOpenAI:
         self.model = model
 
     def query(self, prompt):
-        # The max_tokens parameter is shared between the prompt and the completion
-        response = openai.ChatCompletion.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=self.temperature,
-        )
-        return response.choices[0].message['content']
+        try:
+            response = openai.ChatCompletion.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=self.temperature,
+            )
+            return response.choices[0].message['content'], None
+        except openai.error.APIError:
+            return None, 'OPENAI_API_ERROR'
+        except openai.error.Timeout:
+            return None, 'OPENAI_TIMEOUT'
+        except openai.error.RateLimitError:
+            return None, 'OPENAI_RATE_LIMIT_ERROR'
+        except openai.error.APIConnectionError:
+            return None, 'OPENAI_API_CONNECTION_ERROR'
+        except openai.error.InvalidRequestError:
+            return None, 'OPENAI_INVALID_REQUEST_ERROR'
+        except openai.error.AuthenticationError:
+            return None, 'OPENAI_AUTHENTICATION_ERROR'
+        except openai.error.ServiceUnavailableError:
+            return None, 'OPENAI_SERVICE_UNAVAILABLE_ERROR'
+        except Exception as e:
+            return None, 'OPENAI_UNKNOWN_ERROR'
 
 
 def get_file(path: str):
     file_path = f"{path}"
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Cannot find path {file_path}")
-
-    with open(file_path, "r") as f:
-        return f.read()
+        return None, 'FILE_NOT_FOUND'
+    try:
+        with open(file_path, "r") as f:
+            return f.read(), None
+    except IOError:
+        return None, 'TEMPLATE_IO_ERROR'
+    except Exception as e:
+        return None, 'TEMPLATE_IO_UNKNOWN_ERROR'
 
 
 def get_template(template: str = ''):
-    return get_file(f"templates/{template}.txt")
+    content, error = get_file(f"templates/{template}.txt")
+    if error:
+        return None, error
+    return content, None
 
 
-def generate_prompt_by_template(data={}, template: str = '') -> PromptTemplate:
-    question_template = get_template(template)
-
-    prompt_template = PromptTemplate.from_template(question_template)
-    formatted_prompt = prompt_template.format(**data)
-    print(f"Formatted Prompt: {formatted_prompt}")
-    return formatted_prompt
+def generate_prompt_by_template(data={}, template: str = ''):
+    question_template, error = get_template(template)
+    if error:
+        return None, error
+    try:
+        prompt_template = PromptTemplate.from_template(question_template)
+        formatted_prompt = prompt_template.format(**data)
+        return formatted_prompt, None
+    except KeyError:
+        return None, 'TEMPLATE_KEY_ERROR_IMPORTING_TEMPLATE'
+    except Exception as e:
+        return None, 'TEMPLATE_KEY_IMPORATING_UNKNOWN_ERROR'
 
 
 def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens: int = models['gpt-3.5-turbo'].max_token):
-    # tiktoken doesn't work correctly, and we need to trim the content
-    # to fit the max_tokens
-    # 90% of max_tokens, as a safe measure
     optimistic_max_tokens = max_tokens * 0.95
-    question_template = get_template(template)
+    question_template, error = get_template(template)
+    if error:
+        return None, error
+
     prompt_length = 0
-    file_content = data['trimmable_content']
+    file_content = data.get('trimmable_content', '')
     while prompt_length > optimistic_max_tokens or prompt_length == 0:
-        prompt_template = PromptTemplate.from_template(question_template)
-        data['trimmable_content'] = file_content
-        prompt_template = prompt_template.format(
-            **data)
-        prompt_length = get_tokens_length(prompt_template)
-        # remove last 5 characters
-        file_content = file_content[:-5]
-    return prompt_template
+        try:
+            prompt_template = PromptTemplate.from_template(question_template)
+            data['trimmable_content'] = file_content
+            formatted_prompt = prompt_template.format(**data)
+            prompt_length = get_tokens_length(formatted_prompt)
+            file_content = file_content[:-5]
+        except KeyError:
+            return None, 'TEMPLATE_KEY_ERROR_IN_TEMPLATE'
+        except Exception as e:
+            return None, 'TEMPLATE_KEY_UNKNOWN_ERROR'
+    return formatted_prompt, None
 
 
-# save_to is a relative path, not absolute. value example : '/Configuration'
 def get_gpt_response_from_template(data={}, template: str = '', model=models['gpt-3.5-turbo'].name, max_tokens=models['gpt-3.5-turbo'].max_token, trim_content: bool = False, ignore_output_folder_on_save: bool = False, trim_path: str = '', save_to_subfolder: str = '', save_to_name: str = ''):
     if not template:
-        raise ValueError("Template name is required")
+        return None, 'TEMPLATE_NAME_REQUIRED'
+
+    if trim_content and trim_path:
+        data['trimmable_content'], error = get_file(trim_path)
+        if error:
+            return None, error
+
     if trim_content:
-        # Only replace if path is provided
-        if trim_path:
-            data['trimmable_content'] = get_file(trim_path)
-        prompt = generate_prompt_and_fit_file_content(
+        prompt, error = generate_prompt_and_fit_file_content(
             data=data, template=template, max_tokens=max_tokens)
     else:
-        prompt = generate_prompt_by_template(data=data, template=template)
+        prompt, error = generate_prompt_by_template(
+            data=data, template=template)
 
-    llm = ConversationlessOpenAI(temperature=0.2,
-                                 model=model)
+    if error:
+        return None, error
 
-    print(f"{datetime.now().strftime('%H:%M:%S')} - Asking answer with template {template}")
-    response = llm.query(prompt)
-    print(f"{datetime.now().strftime('%H:%M:%S')} - Received answer with template {template}")
+    llm = ConversationlessOpenAI(temperature=0.2, model=model)
+    response, error = llm.query(prompt)
+
+    if error:
+        return None, error
+
     if save_to_subfolder and save_to_name:
-        if ignore_output_folder_on_save:
-            saving_path = Path(save_to_subfolder)
-        else:
-            saving_path = Path(settings.output_folder) / save_to_subfolder
-
+        saving_path = Path(save_to_subfolder) if ignore_output_folder_on_save else Path(
+            settings.output_folder) / save_to_subfolder
         saving_path.mkdir(parents=True, exist_ok=True)
         file_path = saving_path / save_to_name
 
-        with file_path.open("w") as f:
-            f.write(response)
-    return response
+        try:
+            with file_path.open("w") as f:
+                f.write(response)
+        except IOError:
+            return None, 'SAVE_TO_FILE_ERROR'
+        except Exception as e:
+            return None, 'SAVE_TO_FILE_UNKNOWN_ERROR'
+    return response, None

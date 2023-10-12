@@ -90,17 +90,21 @@ def generate_documentation_for_project_per_file(project: ProjectStructure, proje
         result_path_str = result_path_str.replace(
             settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
         # if file_extension in temp_file_path.name.endswith('package.json'):
+        error = None
         if temp_file_path.name.endswith('package.json'):
-            get_gpt_response_from_template(
+            _, error = get_gpt_response_from_template(
                 data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '.md', ignore_output_folder_on_save=True)
-            get_gpt_response_from_template(
-                data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
+            if not error:
+                _, error = get_gpt_response_from_template(
+                    data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
         elif file_extension in list_of_accepted_docs_file_extensions:
-            get_gpt_response_from_template(
+            _, error = get_gpt_response_from_template(
                 data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '.md', ignore_output_folder_on_save=True)
         else:
-            get_gpt_response_from_template(
+            _, error = get_gpt_response_from_template(
                 data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '.md', ignore_output_folder_on_save=True)
+        if error:
+            print(f'Error: {error}')
 
 
 def get_file_summary(file_absolute_path):
@@ -127,7 +131,7 @@ def get_folder_summary(folder_absolute_path):
 
 
 def generate_documentation_for_project_per_folder(project: ProjectStructure, project_name=''):
-    all_folders = project.get_all_folders()
+    all_folders = project.get_all_folders().reverse()
     print(all_folders)
     root_path = Path(f"{settings.output_folder}/{project_name}")
     for folder in all_folders:

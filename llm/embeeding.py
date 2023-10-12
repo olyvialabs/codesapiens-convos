@@ -1,11 +1,8 @@
 import os
-import json
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
 from langchain.vectorstores import FAISS
 from config.settings import settings
 from retry import retry
-import openai
 
 
 with open("templates/chat_combine_prompt.txt", "r") as f:
@@ -24,10 +21,6 @@ def get_vector_doc_store(vectorstore):
         openai_api_key=settings.OPENAI_API_KEY)
     docsearch = FAISS.load_local("outputs", openai_embeddings)  # vectorstore
     return docsearch
-
-
-def generate_embeed_data_from_file():
-    return
 
 
 def get_stream_answer(question, docsearch, chat_history, conversation_id):

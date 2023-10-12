@@ -18,10 +18,18 @@ def group_documents(docs: List[LCDocument]) -> List[LCDocument]:
     temp_docs = []
 
     for doc in docs:
-        print(doc)
-        print('===================')
-        lc_document = LCDocument(page_content=doc, metadata={"source": "local"})
-        temp_docs.append(lc_document)
+        chunks = [doc[i:i+1000] for i in range(0, len(doc), 1000)]
+        # Iterate through the chunks
+        for idx, chunk in enumerate(chunks):
+            lc_document = LCDocument(
+                page_content=chunk, metadata={"source": "local"})
+            temp_docs.append(lc_document)
+        # continue
+        # print(doc)
+        # print('===================')
+        # lc_document = LCDocument(
+        #     page_content=doc, metadata={"source": "local"})
+        # temp_docs.append(lc_document)
 
     return temp_docs
 
@@ -34,7 +42,7 @@ def group_and_partition_documents(documents: List[LCDocument]):
     except Exception:
         print("Grouping failed")
 
-    print("Separating large documents")
+   # print("Separating large documents")
     # try:
     #     documents = split_documents(docs=documents)
     # except Exception:
