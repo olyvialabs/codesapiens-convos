@@ -3,7 +3,12 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from config.settings import settings
 from retry import retry
-
+from persister.supabase import get_supabase, insert_billing_file_processed, update_document_embeeding, get_document_by_pathname, create_document_folder, update_github_document_data, create_normal_document, get_folder_exists
+from langchain.vectorstores import SupabaseVectorStore
+import json
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.document_loaders import TextLoader
+from langchain.schema import Document
 
 with open("templates/chat_combine_prompt.txt", "r") as f:
     chat_combine_template = f.read()
@@ -103,29 +108,240 @@ def get_stream_answer(question, docsearch, chat_history, conversation_id):
     yield f"data: {completion}\n\n"
 
 
-def embeed_md_files_to_store(docs):
-    # create output folder if it doesn't exist
-    if not os.path.exists(f"{settings.output_folder}"):
-        os.makedirs(f"{settings.output_folder}")
+def get_relative_path(absolute_path, base_path):
+    """Convert an absolute path to a relative path based on the given base path."""
+    if absolute_path.startswith(base_path):
+        relative_path = absolute_path[len(base_path):].lstrip("/")
+        return "/" + relative_path
+    return absolute_path
 
-    init_doc_store_files = [docs[0]]
-    docs.pop(0)
 
-    store = FAISS.from_documents(init_doc_store_files, OpenAIEmbeddings(
-        openai_api_key=settings.OPENAI_API_KEY))
+def get_folder_parent_id_from_path(folder_path: str, repository_id: str, project_id: str):
+    values = split_path(folder_path)
+    return ensure_folder_exists(values.get('directory'), repository_id, None, project_id)
 
-    # TODO: Move status update to this part instead of the calling for
+
+created_to_pick = {}
+
+
+def ensure_folder_exists(folder_path, repository_id, project_name, project_id):
+    print('[FOLDER] tried', folder_path)
+    if folder_path == '/':
+        return
+    values = split_path(folder_path)
+    document = get_document_by_pathname(
+        values.get('directory'), values.get('filename'), repository_id)
+    if folder_path in created_to_pick:
+        separator = ''
+        if values.get('directory') != '/':
+            separator = '/'
+        return created_to_pick[values.get('directory') + separator+values.get('filename')]
+    elif not (len(document.data) > 0):
+        parent_id = None
+        if values.get('directory') != '/':
+            parent_id = get_folder_parent_id_from_path(
+                folder_path, repository_id, project_id)
+        new_doc = create_document_folder(
+            values.get('directory'), values.get('filename'), repository_id, project_id, parent_id)
+        created_to_pick[values.get('directory')] = parent_id
+        created_to_pick[folder_path] = new_doc.data[0]['id']
+        return new_doc.data[0]['id']
+    # elif values.get('directory') in created_to_pick:
+    #     return created_to_pick[values.get('directory')]
+    elif document and document.data:
+        created_to_pick[folder_path] = new_doc.data[0]['id']
+        return document.data[0]['id']
+    return None
+
+
+def get_content_of_file(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+
+
+def insert_or_update_document(document_data: dict, repository_id: str, project_name: str):
+    # Ensure the folder for this file exists
+    ensure_folder_exists(
+        document_data['path'], document_data['repositoryId'], project_name, document_data['projectId'])
+    document = get_document_by_pathname(
+        document_data['pathName'], document_data['path'], repository_id)
+    print(document)
+    outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
+    project_absolute_dir = os.path.join(outputs_absolute_dir, project_name)
+    if document and document.data:  # If document exists
+        # Update the document
+        file_to_embeed = project_absolute_dir + '/' + \
+            document_data['path']+'/'+document_data['pathName']
+        file_to_embeed_content = get_content_of_file(
+            file_to_embeed)
+        print('here?')
+        updated_document = update_github_document_data(
+            document.data[0]['id'], document_data, file_to_embeed_content)
+        print('herev2?')
+        metadata = {
+            'projectId': document.data[0]['projectId'],
+            'repositoryId': repository_id,
+            'documentId': document.data[0]['id'],
+            'title': document.data[0]['title'],
+            'path': document_data['path']+'/'+document_data['pathName']
+        }
+        print('herev3?')
+        slit_text_to_embeeding(file_to_embeed_content, metadata)
+        print('herev4?')
+        return updated_document
+    else:
+        file_to_embeed = project_absolute_dir + '/' + \
+            document_data['path']+'/'+document_data['pathName']
+        file_to_embeed_content = get_content_of_file(
+            file_to_embeed)
+
+        print('herev5?')
+        new_document = create_normal_document(
+            document_data, file_to_embeed_content)
+        print('herev6?')
+        metadata = {
+            'projectId': new_document.data[0]['projectId'],
+            'repositoryId': repository_id,
+            'documentId': new_document.data[0]['id'],
+            'title': new_document.data[0]['title'],
+            'path':  document_data['path']+'/'+document_data['pathName']
+        }
+        print('herev7?')
+        slit_text_to_embeeding(file_to_embeed_content, metadata)
+        print('herev8?')
+        return new_document
+
+
+def split_path(input_path):
+    """
+    Splits the given input path into directory and filename.
+
+    Args:
+    - input_path (str): The input path to split.
+
+    Returns:
+    - dict: Dictionary containing 'directory' and 'filename' keys.
+    """
+    directory, filename = os.path.split(input_path)
+
+    # Add a leading slash to the directory if not present
+    if not directory.startswith("/"):
+        directory = "/" + directory
+
+    return {
+        "directory": directory,
+        "filename": filename
+    }
+
+
+curr_being_processed = {}
+
+
+def embeed_github_files_to_store(repository, project_name, user_id, process_id):
+    outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
+    project_absolute_dir = os.path.join(outputs_absolute_dir, project_name)
+    for root, dirs, files in os.walk(project_absolute_dir, topdown=False):
+        for filename in files:
+            print(filename)
+            file_path = os.path.join(root, filename).replace(
+                project_absolute_dir, "").lstrip("/")
+            print(file_path)
+            print(file_path)
+            print(file_path)
+            print(file_path)
+            print('the path?', os.path.dirname(file_path) or '/')
+            split_data = split_path(file_path)
+            print('We are talking about [] => ', filename)
+            doc_data = {
+                'title': filename,
+                'pathName': split_data.get('filename'),
+                'path': split_data.get('directory') or "/",
+                'repositoryId': repository['id'],
+                'projectId': repository['projectId'],
+                'synced': True,
+                'parentId': ensure_folder_exists(split_data.get('directory'), repository['id'], None, repository['projectId']),
+                "status": 'active',
+            }
+
+            doc = insert_or_update_document(
+                doc_data, repository['id'], project_name)
+            print('wtf passed here', doc)
+            insert_billing_file_processed(
+                user_id, repository['projectId'], doc.data[0]['id'],  process_id)
+
+    return
+
+
+def chunk_text(text, chunk_length):
+    print('entroPz', text)
+    print('entroPz', text)
+    print('entroPz', text)
+    print(type(text))
+    print(type(chunk_length))
+    return [text[i:i+chunk_length] for i in range(0, len(text), chunk_length)]
+
+
+def convert_to_text_to_docs(text, metadata):
+    print('entroGat1o')
+    pieces = chunk_text(text, 3500)
+    print('entroGato', pieces)
+    return [Document(page_content=piece, metadata=metadata) for piece in pieces]
+    # text_splitter = CharacterTextSplitter(
+    #     chunk_size=chunk_length, chunk_overlap=0)
+    # docs = text_splitter.split_documents(text)
+    # return docs
+
+
+def slit_text_to_embeeding(text, metadata):
+    docs = convert_to_text_to_docs(text, metadata)
+    print(docs)
+    # openai_embeddings = OpenAIEmbeddings(
+    #     openai_api_key=settings.OPENAI_API_KEY)
+    # chunks = chunk_text(text, 1000)
+    # # SupabaseVectorStore().add
+    # return openai_embeddings.embed_documents(chunks)
+    embeddings = OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
+    try:
+        # sometimes says error but it's correct
+        SupabaseVectorStore(
+            get_supabase(), embeddings, "DocumentEmbeedingChunk").add_documents(docs)
+    except Exception as e:
+        print('Error', e)
+
+    # from_documents(
+    #     docs, embeddings, client=get_supabase(), table_name="DocumentEmbeedingChunk", query_name="match_documents").add_documents(docs)
+
+
+def embeed_md_files_to_store(project_id, repository_id, docs, files_map, user_id, process_id):
     current_doc_index = 0
+    total_docs = len(docs)
+    print(f"Total documents to process: {total_docs}")
     for current_doc in docs:
         try:
-            store_add_texts_with_retry(store, current_doc)
+            doc_path = current_doc['path']
+            id = files_map['/'+doc_path]
+            print(f'Value: {doc_path} - ID: {id}')
+            document_id = id
+            print(
+                f"Processing document {current_doc_index}/{total_docs}: {doc_path}")
+            if not document_id:
+                raise ValueError(
+                    f"No document ID found for path: {doc_path}")
+            # Assuming 'get_embedding' is a method to retrieve the embedding
+
+            doc = update_document_embeeding(document_id)
+            insert_billing_file_processed(
+                user_id, project_id, document_id,  process_id)
+            metadata = {
+                'projectId': doc.data[0]['projectId'],
+                'repositoryId': repository_id,
+                'documentId': doc.data[0]['id'],
+                'title': doc.data[0]['title'],
+                'path': doc_path
+            }
+            slit_text_to_embeeding(
+                current_doc['content'], metadata)
         except Exception as e:
-            print(e)
-            print("Error on ", current_doc)
-            print("Saving progress")
-            print(f"stopped at {current_doc_index} out of {len(docs)}")
-            store.save_local(f"{settings.output_folder}")
-            break
+            print(
+                f"Error processing document {current_doc_index}/{total_docs}: {e}")
         current_doc_index += 1
-    store.save_local(f"{settings.output_folder}")
-    # store.add_texts([i.page_content], metadatas=[i.metadata])

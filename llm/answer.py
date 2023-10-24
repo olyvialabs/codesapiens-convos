@@ -12,7 +12,7 @@ from langchain import VectorDBQA, OpenAI
 from langchain.chains.conversational_retrieval.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains import LLMChain, ConversationalRetrievalChain
 from langchain.chains.question_answering import load_qa_chain
-from persister.supabase import insert_chat_message, get_chat_history, MessageType, insert_billing_question_processed
+from persister.supabase import insert_chat_message, get_chat_history, MessageType
 
 with open("templates/question_prompt.txt", "r") as f:
     question_prompt = f.read()

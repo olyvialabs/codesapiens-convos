@@ -13,6 +13,7 @@ class ProjectStructure:
 
     def get_all_files(self, keep_root_files=True):
         files = []
+        print(self.folder_structure.files)
         if not keep_root_files:
             files = self.folder_structure.files
         for folder in self.folder_structure.folders:

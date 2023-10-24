@@ -2,6 +2,7 @@ from supabase import create_client, Client
 from config.settings import settings
 from enum import Enum
 import cuid
+from datetime import datetime
 
 
 class BillingType(Enum):
@@ -17,6 +18,66 @@ class MessageType(Enum):
 url: str = settings.SUPABASE_URL
 key: str = settings.SUPABASE_KEY
 supabase: Client = create_client(url, key)
+
+
+def get_supabase():
+    return supabase
+
+
+def update_github_document_data(id, data, content):
+    data['content'] = content
+    print('some reason', id, data)
+    return supabase.table('Document').update(data).eq('id', id).execute()
+
+
+def create_normal_document(data, content):
+    unique_id = cuid.cuid()
+    data['id'] = unique_id
+    data['content'] = content
+    return supabase.table('Document').insert(data).execute()
+
+
+def create_document_folder(folder_path: str, folder_name: str, repository_id: str, project_id: str, parentId: None):
+    unique_id = cuid.cuid()
+    return supabase.table('Document').insert({
+        'id': unique_id,
+        'pathName': folder_name,
+        'path': folder_path or "/",
+        'repositoryId': repository_id,
+        'isFolder': True,
+        'synced': True,
+        'projectId': project_id,
+        'title': folder_name,
+        "status": 'active',
+        'parentId': parentId
+    }).execute()
+
+
+def get_document_by_pathname(pathname: str, path: str, repository_id: str):
+    return supabase.table('Document').select('*').eq('pathName', pathname).eq('path', path).eq('repositoryId', repository_id).execute()
+
+
+def get_folder_exists(path: str, repository_id: str):
+    return supabase.table('Document').select('*').eq('path', path).eq('repositoryId', repository_id).execute()
+
+
+def get_unsynced_repository_docs(repository_id: str):
+    return supabase.table('Document').select('*').eq('repositoryId', repository_id).eq('synced', False).execute()
+
+
+def get_user(user_id: str):
+    return supabase.table('User').select('*').eq('id', user_id).execute()
+
+
+def get_vector_similarity_search(id_project: str):
+    return supabase.rpc('match_documents_within_project', {'projectId': id_project}).execute()
+
+
+def update_document_embeeding(document_id: str):
+    return supabase.table('Document')\
+                   .update({'synced': True})\
+                   .eq('id', document_id)\
+                   .execute()
 
 
 def get_chat_history(id_chat: str):
@@ -42,28 +103,75 @@ def insert_chat_message(user_id: str, chat_id: str, content: str, message_type: 
     return {'id': unique_id, 'chat_id': chat_id}
 
 
-def insert_billing_file_processed(user_id: str, project_id: str, document_id: str, extra_data: str):
+def insert_repo_sync(repository_id: str = '', project_id: str = ''):
+    unique_id = cuid.cuid()
+    # Inserting into chat_history
+    repo_sync_data = {
+        "id": unique_id,
+        "repositoryId": repository_id,
+        "projectId": project_id,
+    }
+    supabase.table('RepositorySync').insert(repo_sync_data).execute()
+
+    return {'id': unique_id}
+
+
+def update_repo_sync_finished(repository_sync_id: str, logs: str):
+    # Current date and time
+    current_datetime = datetime.now()
+
+    # Data to be updated
+    repo_sync_update_data = {
+        "logs": logs,
+        "finished_at": current_datetime
+    }
+
+    # Updating RepositorySync based on ID
+    result = supabase.table('RepositorySync').update(
+        repo_sync_update_data).eq('id', repository_sync_id).execute()
+
+    return result
+
+
+def insert_process(project_id: str, repository_id: str, start_date: str, end_date: str = None, logs: str = None):
+    unique_id = cuid.cuid()
+    process_data = {
+        "id": unique_id,
+        "startDate": start_date,
+        "endDate": end_date,
+        "logs": logs,
+        "repositoryId": repository_id,
+        "projectId": project_id,
+    }
+    supabase.table('Process').insert(process_data).execute()
+    return {'id': unique_id}
+
+
+def update_process_end_date_and_logs(process_id: str, logs: str):
+    end_date = datetime.now().isoformat()
+
+    updated_data = {
+        "endDate": end_date,
+        "logs": logs
+    }
+
+    supabase.table('Process').update(
+        updated_data).eq('id', process_id).execute()
+
+
+def insert_billing_file_processed(user_id: str, project_id: str, document_id: str, process_id: str):
     unique_id = cuid.cuid()
     billing_file_data = {
         "id": cuid.cuid(),
         "userId": user_id,
         "projectId": project_id,
         "documentId": document_id,
-        "metadata": None  # message_type.value,
+        "metadata": None,
+        "processId": process_id,
     }
     supabase.table('BillingFile').insert(billing_file_data).execute()
     return {'id': unique_id}
 
 
-def insert_billing_question_processed(user_id: str, project_id: str, question: str, chat_id: str, tokens: int):
-    unique_id = cuid.cuid()
-    billing_question_data = {
-        "id": cuid.cuid(),
-        # "userId": user_id,
-        "projectId": project_id,
-        "chatId": chat_id,
-        "question": question,
-        "tokens_used": tokens,
-    }
-    supabase.table('BillingQuestions').insert(billing_question_data).execute()
-    return {'id': unique_id}
+def get_repository_by_id(repository_id: str):
+    return supabase.table('Repository').select('*').eq('id', repository_id).execute()

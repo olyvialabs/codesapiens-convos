@@ -31,7 +31,11 @@ class FolderStructure:
 
     def get_structure(self, folder_path, depth):
         folders = []
+        print(folder_path)
+        print(folder_path)
+        print(folder_path)
         dir_path = Path(folder_path)
+        print(folder_path)
         entries = [entry for entry in dir_path.iterdir()]
         for entry in entries:
             if entry.is_dir() and FolderStructure.should_document(entry, entry.is_dir()):
