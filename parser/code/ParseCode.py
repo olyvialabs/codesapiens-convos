@@ -81,40 +81,46 @@ def generate_documentation_for_project_per_file(project: ProjectStructure, proje
     all_files = project.get_all_files(keep_root_files=False)
     current_dir = Path(os.getcwd())
     for file in all_files:
-        if (output_logger is not None):
-            output_logger.info(f'Processing file: {file.entry}')
-        print(f'Now processing file: ${file.entry}')
-        temp_file_path = Path(file.absolute_path)
-        file_extension = temp_file_path.suffix[1:]  # remove the dot
-
-        result_path = current_dir.joinpath(temp_file_path.parent)
-        result_path_str = str(result_path)
-
-        result_path_str = result_path_str.replace(
-            settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
-
-        save_name_format = f"{temp_file_path.stem}.{file_extension}"
-        finish_file_ext = 'md'
-        if not save_name_format.endswith('.'):
-            finish_file_ext = '.md'
-        save_name_format = f"{save_name_format}{finish_file_ext}"
-        error = None
-        if temp_file_path.name.endswith('package.json'):
-            _, error = get_gpt_response_from_template(
-                data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
-            if not error:
-                _, error = get_gpt_response_from_template(
-                    data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
-        elif file_extension in list_of_accepted_docs_file_extensions:
-            _, error = get_gpt_response_from_template(
-                data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
-        else:
-            _, error = get_gpt_response_from_template(
-                data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
-        if error:
+        try:
             if (output_logger is not None):
-                output_logger.error(f'Error: {error}')
-            print(f'Error: {error}')
+                output_logger.info(f'Processing file: {file.entry}')
+            print(f'Now processing file: ${file.entry}')
+            temp_file_path = Path(file.absolute_path)
+            file_extension = temp_file_path.suffix[1:]  # remove the dot
+
+            result_path = current_dir.joinpath(temp_file_path.parent)
+            result_path_str = str(result_path)
+
+            result_path_str = result_path_str.replace(
+                settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
+
+            save_name_format = f"{temp_file_path.stem}.{file_extension}"
+            finish_file_ext = 'md'
+            if not save_name_format.endswith('.'):
+                finish_file_ext = '.md'
+            save_name_format = f"{save_name_format}{finish_file_ext}"
+            error = None
+            if temp_file_path.name.endswith('package.json'):
+                _, error = get_gpt_response_from_template(
+                    data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+                if not error:
+                    _, error = get_gpt_response_from_template(
+                        data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
+            elif file_extension in list_of_accepted_docs_file_extensions:
+                _, error = get_gpt_response_from_template(
+                    data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+            else:
+                _, error = get_gpt_response_from_template(
+                    data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+            if error:
+                if (output_logger is not None):
+                    output_logger.error(f'Error: {error}')
+                print(f'Error: {error}')
+        except Exception as e:
+            print(f'Error: {e}')
+            if (output_logger is not None):
+                output_logger.error(f'Error: {e}')
+            continue
 
 
 def get_file_summary(file_absolute_path):

@@ -15,7 +15,6 @@ from langchain.chains.question_answering import load_qa_chain
 from persister.supabase import insert_billing_question_processed, get_supabase, insert_chat_message, get_chat_history, MessageType
 from langchain.vectorstores import SupabaseVectorStore
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.memory import ConversationBufferMemory
 
 with open("templates/question_prompt.txt", "r") as f:
     question_prompt = f.read()
@@ -55,7 +54,7 @@ def get_processed_history(chat_id):
     return history
 
 
-def generate_prompt_answer(prompt, vector_store, id_chat='', id_user='', id_project=''):
+def generate_prompt_answer(prompt, id_chat='', id_user='', id_project=''):
     openai_embeddings = OpenAIEmbeddings(
         openai_api_key=settings.OPENAI_API_KEY)
     supabase_store = SupabaseVectorStore(
@@ -63,9 +62,9 @@ def generate_prompt_answer(prompt, vector_store, id_chat='', id_user='', id_proj
     # , 'filter': {'projectId': id_project}
     print('id_project', id_project)
     qa = ConversationalRetrievalChain.from_llm(
-        ChatOpenAI(temperature=0.15, model_name="gpt-3.5-turbo"),
+        ChatOpenAI(temperature=0.25, model_name="gpt-3.5-turbo-16k"),
         supabase_store.as_retriever(
-            search_kwargs={'k': 4}, filter={'projectId': id_project}),
+            search_kwargs={'k': 11}, filter={'projectId': id_project}),
         return_source_documents=True,
         verbose=True,
     )

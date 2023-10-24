@@ -1,0 +1,3 @@
+The devDependencies section of the package.json file contains a list of packages that are required for development purposes only. These packages are not necessary for the production version of the application. The devDependencies section helps to separate the dependencies needed for development from the dependencies needed for the actual application to run.
+
+In the given partial information of the package.json file for the "devportfolio-frontend" project, the devDependencies section is yet to be provided.
