@@ -42,7 +42,7 @@ def answer():
         return jsonify({"error": "Chat is not active or does not exist"}), 403
 
     doc_store = get_vector_doc_store(settings.output_folder)
-    return generate_prompt_answer(prompt=prompt, vector_store=doc_store, id_user=id_user, id_chat=id_chat, id_project=chat_data.data[0].get("project_id"))
+    return generate_prompt_answer(prompt=prompt, vector_store=doc_store, id_user=id_user, id_chat=id_chat, id_project=chat_data.data[0]['projectId'])
 
 
 @app.route('/api/test', methods=['POST'])

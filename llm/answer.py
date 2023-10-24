@@ -12,7 +12,10 @@ from langchain import VectorDBQA, OpenAI
 from langchain.chains.conversational_retrieval.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains import LLMChain, ConversationalRetrievalChain
 from langchain.chains.question_answering import load_qa_chain
-from persister.supabase import insert_chat_message, get_chat_history, MessageType
+from persister.supabase import insert_billing_question_processed, get_supabase, insert_chat_message, get_chat_history, MessageType
+from langchain.vectorstores import SupabaseVectorStore
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.memory import ConversationBufferMemory
 
 with open("templates/question_prompt.txt", "r") as f:
     question_prompt = f.read()
@@ -53,9 +56,16 @@ def get_processed_history(chat_id):
 
 
 def generate_prompt_answer(prompt, vector_store, id_chat='', id_user='', id_project=''):
+    openai_embeddings = OpenAIEmbeddings(
+        openai_api_key=settings.OPENAI_API_KEY)
+    supabase_store = SupabaseVectorStore(
+        get_supabase(), openai_embeddings, "DocumentEmbeedingChunk", 'match_documents')
+    # , 'filter': {'projectId': id_project}
+    print('id_project', id_project)
     qa = ConversationalRetrievalChain.from_llm(
         ChatOpenAI(temperature=0.15, model_name="gpt-3.5-turbo"),
-        vector_store.as_retriever(search_kwargs={'k': 3}),
+        supabase_store.as_retriever(
+            search_kwargs={'k': 4}, filter={'projectId': id_project}),
         return_source_documents=True,
         verbose=True,
     )
@@ -72,7 +82,7 @@ def generate_prompt_answer(prompt, vector_store, id_chat='', id_user='', id_proj
     # Insert assistant's answer into Supabase
     assistance_msg = insert_chat_message(
         id_user, id_chat, result['answer'], MessageType.ASSISTANT, id_project)
-
+    insert_billing_question_processed(id_user, id_chat, id_project, prompt)
     # Insert billing info
     # insert_billing_question_processed(
     #     user_id=id_user,

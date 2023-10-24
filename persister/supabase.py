@@ -69,8 +69,13 @@ def get_user(user_id: str):
     return supabase.table('User').select('*').eq('id', user_id).execute()
 
 
-def get_vector_similarity_search(id_project: str):
-    return supabase.rpc('match_documents_within_project', {'projectId': id_project}).execute()
+def get_vector_similarity_search(query_embedding: list, id_project: str):
+    # Create a filter based on the projectId
+    filter_data = {"projectId": id_project}
+
+    # Pass the query_embedding and filter_data as arguments to the RPC function
+    params = {"query_embedding": query_embedding, "filter": filter_data}
+    return supabase.rpc('match_documents', params).execute()
 
 
 def update_document_embeeding(document_id: str):
@@ -170,6 +175,19 @@ def insert_billing_file_processed(user_id: str, project_id: str, document_id: st
         "processId": process_id,
     }
     supabase.table('BillingFile').insert(billing_file_data).execute()
+    return {'id': unique_id}
+
+
+def insert_billing_question_processed(user_id: str, chat_id: str, project_id: str, question: str):
+    unique_id = cuid.cuid()
+    billing_question_data = {
+        "id": cuid.cuid(),
+        "userId": user_id,
+        "projectId": project_id,
+        "chatId": chat_id,
+        "question": question,
+    }
+    supabase.table('BillingQuestions').insert(billing_question_data).execute()
     return {'id': unique_id}
 
 

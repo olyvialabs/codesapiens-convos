@@ -21,7 +21,6 @@ from parser.schema.base import Document
 # from parser.code.javascript import extract_functions_and_classes
 # from parser.DirectoryIterator import DirectoryIterator
 # from celery.utils.log import get_task_logger
-from llm.embeeding import embeed_md_files_to_store
 from llm.tokens import group_and_partition_documents
 from parser.file.ProjectStructure import ProjectStructure
 from pathlib import Path
