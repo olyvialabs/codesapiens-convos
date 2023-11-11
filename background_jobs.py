@@ -12,8 +12,8 @@ from logger.Logger import Logger
 import logging
 import os
 import shutil
-from celery import Celery
-from celery.result import AsyncResult
+# from celery import Celery
+# from celery.result import AsyncResult
 # from parser.code.base import transform_to_docs
 # from parser.code.javascript import extract_functions_and_classes
 # from parser.DirectoryIterator import DirectoryIterator
@@ -24,16 +24,17 @@ from config.settings import settings
 from datetime import datetime
 
 
-celery = Celery()
-celery.config_from_object("config.celery_config")
+# celery = Celery()
+# celery.config_from_object("config.celery_config")
 temp_absolute_dir = os.path.join(os.getcwd(), settings.temp_folder)
 outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
 
 
 def get_process_status(process_id):
-    process = AsyncResult(process_id)
+    return {"status": "FINISHED", "details": "FINISHED"}
+    # process = AsyncResult(process_id)
 
-    return {"status": process.status, "details": process.info}
+    # return {"status": process.status, "details": process.info}
 
 
 def save_db_docs_to_temp_folder(logger, file_list, project_name):
@@ -337,7 +338,7 @@ def index_project_files(id_user, repository):
     return 'FINISHED'
 
 
-@celery.task(bind=True)
+# @celery.task(bind=True)
 def index_project_files_with_gpt(self, id_user, repository):
     self.update_state(state='STARTED')
     id_repository = repository['id']
