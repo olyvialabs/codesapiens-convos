@@ -78,3 +78,6 @@ def process_uploaded_files():
     #     # process_status = get_process_status(queue_item.id)
     # return {"status": "STARTED"}
     return {"status": "NOT_IMPLEMENTED"}
+
+
+app.run()
