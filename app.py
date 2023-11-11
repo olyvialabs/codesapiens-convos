@@ -48,14 +48,16 @@ def embeedSync():
     data = request.get_json()
     id_user = data.get("id_user")
     id_repositories = data.get("id_repositories", [])  # expect an array
+    # id_repositories = ['clotwbl80000lyh2zvc1ip4pa']
     processes = []
 
     for id_repository in id_repositories:
         repository = get_repository_by_id(id_repository)
         if not repository.data:
             continue
-        queue_item = index_project_files.delay(id_user, repository.data[0])
-        processes.append(queue_item.id)
+        index_project_files(id_user, repository.data[0])
+        # queue_item = index_project_files.delay(id_user, repository.data[0])
+        # processes.append(queue_item.id)
         # process_status = get_process_status(queue_item.id)
     return {"status": "STARTED", "processes": processes}
 

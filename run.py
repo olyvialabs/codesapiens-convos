@@ -6,4 +6,4 @@ if __name__ == "__main__":
     # Load .env variables
     dotenv.load_dotenv()
 
-    app.run(debug=True, port=7091)
+    app.run(debug=False, port=7091)

@@ -8,6 +8,7 @@ from config.settings import settings
 import re
 import os
 import logging
+from llm.trainer_model import ask_to_trained_model, get_functions_from_file_in_plain_text
 
 
 def get_package_json_data_for_dependencies(filename: str = 'package.json'):
@@ -75,6 +76,78 @@ def generate_root_config_files(config_list=[], project_name=''):
 def _read_content_from_path(absolute_path):
     with open(absolute_path, 'r') as file:
         return file.read()
+
+
+def generate_documentation_for_project_per_file_new(project: ProjectStructure, project_name='', output_logger: logging = None):
+    all_files = project.get_all_files(keep_root_files=False)
+    current_dir = Path(os.getcwd())
+    for file in all_files:
+        try:
+            if (output_logger is not None):
+                output_logger.info(f'Processing file: {file.entry}')
+            print(f'Now processing file: ${file.entry}')
+            temp_file_path = Path(file.absolute_path)
+
+            file_extension = temp_file_path.suffix[1:]  # remove the dot
+
+            result_path = current_dir.joinpath(temp_file_path.parent)
+            result_path_str = str(result_path)
+
+            result_path_str = result_path_str.replace(
+                settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
+
+            save_name_format = f"{temp_file_path.stem}.{file_extension}"
+            finish_file_ext = 'md'
+            if not save_name_format.endswith('.'):
+                finish_file_ext = '.md'
+            fns = get_functions_from_file_in_plain_text(
+                file.absolute_path) if file_extension == 'py' else []
+            save_name_format = f"{save_name_format}{finish_file_ext}"
+            saving_info = '# ' + save_name_format + '\n'
+            for fn in fns:
+                # fn is a tuple with (function_name, function_content)
+                print(f'Now processing function: ${fn[1]}')
+                response = ask_to_trained_model(fn[1])
+                if response:
+                    saving_info = saving_info + \
+                        f"## {fn[0]}\n### Documentation\n{response}\n### Code\n```python\n{fn[1]}\n```\n\n\n"
+            print(f'Now processing function: ${fns}')
+            if len(fns) == 0:
+                # if we dont have functions, we just send the whole file
+                # for that we need to encapsulate it into a fn, def main(): and then use it
+                with open(file.absolute_path, 'r') as file:
+                    try:
+                        all_file_content = file.read()
+                        if (file_extension == 'py'):
+                            lines = file.readlines()
+                            # idea is, skip imports and add main function
+                            non_import_lines = [
+                                line for line in lines if not line.strip().startswith(('import', 'from'))]
+                            indented_lines = [
+                                '    ' + line for line in non_import_lines]
+                            processed_file_to_ask = [''.join(indented_lines)]
+
+                            response = ask_to_trained_model(
+                                processed_file_to_ask)
+                            saving_info = f"## All file docs\n### Documentation\n{response}\n### Code\n```python\n{all_file_content}\n```\n\n\n"
+                        else:
+                            saving_info = f"## All file content\n{all_file_content}\n\n\n"
+                    except Exception as e:
+                        print(f'Error: {e}')
+                        if (output_logger is not None):
+                            output_logger.error(f'Error: {e}')
+            saving_path = Path(settings.output_folder) / result_path_str
+            saving_path.mkdir(parents=True, exist_ok=True)
+            file_path = saving_path / save_name_format
+
+            with file_path.open("w") as f:
+                f.write(saving_info)
+
+        except Exception as e:
+            print(f'Error: {e}')
+            if (output_logger is not None):
+                output_logger.error(f'Error: {e}')
+            continue
 
 
 def generate_documentation_for_project_per_file(project: ProjectStructure, project_name='', output_logger: logging = None):

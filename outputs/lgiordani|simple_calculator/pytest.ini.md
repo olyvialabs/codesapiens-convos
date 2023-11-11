@@ -1,0 +1,8 @@
+## All file content
+[pytest]
+minversion = 2.0
+norecursedirs = .git .tox requirements*
+python_files = test*.py
+
+
+

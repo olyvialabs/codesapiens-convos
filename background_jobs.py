@@ -1,6 +1,6 @@
 from parser.file.ProjectStructure import ProjectStructure
 from parser.file.FolderStructure import FolderStructure
-from parser.code.ParseCode import generate_root_config_files, generate_documentation_for_project_per_file, generate_documentation_for_project_per_folder
+from parser.code.ParseCode import generate_root_config_files, generate_documentation_for_project_per_file, generate_documentation_for_project_per_file_new, generate_documentation_for_project_per_folder
 from parser.code.RepoHandling import clone_repo_to_folder
 from llm.open_ai import get_gpt_response_from_template
 from config.settings import settings
@@ -72,6 +72,71 @@ def process_github_repository(process_id, logger, project_name, repository, user
     for file_structure in project_main_folder.files:
         list_of_files_concatenated += file_structure.absolute_path + '\n'
 
+    output_logger.info(
+        "Processing and generating documentation from repository...")
+    # Generate all documentation per file
+    generate_documentation_for_project_per_file_new(
+        project=project, project_name=project_name, output_logger=output_logger)
+    output_logger.info(
+        "Documentation from repository processed and generated successfully.")
+
+    output_logger.info("Indexing Processed Github data...")
+    output_project_for_indexing = ProjectStructure(
+        target_path=outputs_absolute_dir+'/'+project_name)
+    raw_docs = []
+    all_files = output_project_for_indexing.get_all_files(False)
+
+    for file in all_files:
+        abs_folder_path = os.path.join(os.getcwd(), file.path)
+        parts = file.path.split("/")
+
+        # Find the index of the first occurrence of "convos"
+        # TODO!
+        convos_index = parts.index("convos")
+
+        # Extract the path from "outputs" and forward
+        # 3 because:
+        # 0 would be convos
+        # 1 would be convos/outputs
+        # 2 would be convos/outputs/project_name
+        # 3 would be convos/outputs/project_name/...
+        rel_path = "/".join(parts[convos_index+3:])
+        raw_docs.append(
+            {"abs_path": settings.output_folder+'/'+project_name+'/'+file.path, "path": rel_path, "content": file.get_content(abs_folder_path)})
+    embeed_github_files_to_store(
+        repository, project_name, user['id'], process_id)
+
+    output_logger.info("Files indexed correctly.")
+    output_logger.info("Process finished.")
+
+    # Delete created temp & output folder
+    # if os.path.exists(temp_absolute_dir + '/' + project_name):
+    #     shutil.rmtree(temp_absolute_dir + '/' + project_name)
+    # if os.path.exists(outputs_absolute_dir + '/' + project_name):
+    #     shutil.rmtree(outputs_absolute_dir + '/' + project_name)
+    # self.update_state(state='FINISHED')
+    output_logger.removeHandler(logger)
+
+
+def process_github_repository_with_gpt(process_id, logger, project_name, repository, user, repoOrgName, repoName):
+    clone_repo_to_folder(user['githubInstallationId'],
+                         project_name, repoOrgName, repoName)
+
+    output_logger = logging.getLogger(project_name)
+    output_logger.addHandler(logger)
+    output_logger.info("Starting analysis of " +
+                       project_name.replace('|', '/')+"...")
+
+    project = ProjectStructure(
+        target_path=settings.temp_folder+'/'+project_name)
+    project_main_folder = FolderStructure(
+        settings.temp_folder+'/'+project_name)
+
+    # Generates a JSON with all config files classified
+    list_of_files_concatenated = ''
+    for file_structure in project_main_folder.files:
+        list_of_files_concatenated += file_structure.absolute_path + '\n'
+
     output_logger.info("Getting root configuration metadata...")
     # config_list = get_gpt_response_from_template(
     #     data={'app_name': project_name, 'trimmable_content': list_of_files_concatenated}, template='what_are_these_config_files', trim_content=True)
@@ -122,6 +187,10 @@ def process_github_repository(process_id, logger, project_name, repository, user
         parts = file.path.split("/")
 
         # Find the index of the first occurrence of "convos"
+        # @TODO!
+        # @TODO!
+        # @TODO!
+        # @TODO!
         convos_index = parts.index("convos")
 
         # Extract the path from "outputs" and forward
@@ -210,9 +279,10 @@ def process_normal_repository(process_id, user, repository_id, logger, project_n
     output_logger.removeHandler(logger)
 
 
-@celery.task(bind=True)
-def index_project_files(self, id_user, repository):
-    self.update_state(state='STARTED')
+# @celery.task(bind=True)
+# @TODO: To add `self` at start of parameters
+def index_project_files(id_user, repository):
+    # self.update_state(state='STARTED')
     id_repository = repository['id']
     # id_project = repository['projectId']
     is_github_repo = repository['repositoryType'] == "github"
@@ -238,6 +308,63 @@ def index_project_files(self, id_user, repository):
             if not os.path.exists(outputs_absolute_dir + '/' + project_name):
                 os.makedirs(outputs_absolute_dir + '/' + project_name)
             process_github_repository(
+                process['id'], initialization_output_logger, project_name, repository, user[0], repoOrgName, repoName)
+        else:
+            project_name = id_repository
+            db_repo_docs = get_unsynced_repository_docs(id_repository).data
+            files_map = save_db_docs_to_temp_folder(
+                initialization_output_logger, db_repo_docs, project_name)
+
+            if not os.path.exists(temp_absolute_dir + '/' + project_name):
+                os.makedirs(temp_absolute_dir + '/' + project_name)
+            if not os.path.exists(outputs_absolute_dir + '/' + project_name):
+                os.makedirs(outputs_absolute_dir + '/' + project_name)
+            process_normal_repository(
+                process['id'], user[0], repository['id'], initialization_output_logger, project_name, files_map, repository['projectId'])
+    except Exception as e:
+        print(e)
+        print(f'Error: {e}')
+    logs = initialization_output_logger.get_logs()
+    update_process_end_date_and_logs(process['id'], logs)
+
+    # Delete created temp & output folder
+    if os.path.exists(temp_absolute_dir + '/' + project_name):
+        shutil.rmtree(temp_absolute_dir + '/' + project_name)
+    if os.path.exists(outputs_absolute_dir + '/' + project_name):
+        shutil.rmtree(outputs_absolute_dir + '/' + project_name)
+    # self.update_state(state='FINISHED')
+
+    return 'FINISHED'
+
+
+@celery.task(bind=True)
+def index_project_files_with_gpt(self, id_user, repository):
+    self.update_state(state='STARTED')
+    id_repository = repository['id']
+    # id_project = repository['projectId']
+    is_github_repo = repository['repositoryType'] == "github"
+
+    if not os.path.exists(temp_absolute_dir):
+        os.makedirs(temp_absolute_dir)
+    initialization_output_logger = Logger()
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    initialization_output_logger.setFormatter(formatter)
+    # Pull data
+    process = insert_process(
+        repository['projectId'], id_repository, datetime.now().isoformat())
+    try:
+        user = get_user(id_user).data
+        if is_github_repo:
+            repoOrgName = repository['repoOrganizationName']
+            repoName = repository['repoProjectName']
+            project_name = f'{repoOrgName}|{repoName}'
+
+            if not os.path.exists(temp_absolute_dir + '/' + project_name):
+                os.makedirs(temp_absolute_dir + '/' + project_name)
+            if not os.path.exists(outputs_absolute_dir + '/' + project_name):
+                os.makedirs(outputs_absolute_dir + '/' + project_name)
+            process_github_repository_with_gpt(
                 process['id'], initialization_output_logger, project_name, repository, user[0], repoOrgName, repoName)
         else:
             project_name = id_repository
