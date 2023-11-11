@@ -2,7 +2,7 @@ celery==5.3.1
 cuid==0.4
 dataclasses_json==0.5.14
 flask==2.3.2
-gitpython==3.1.40
+gitpython==3.1.35
 langchain==0.0.272
 openai==0.27.9
 pydantic_settings==2.0.3
@@ -17,5 +17,5 @@ escodegen==1.0.11
 esprima==4.0.1
 faiss-cpu==1.7.4
 typing-inspect==0.8.0
-typing_extensions==4.5.0
+typing_extensions==4.8.0
 supabase==1.2.0
