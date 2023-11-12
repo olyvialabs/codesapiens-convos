@@ -3,11 +3,11 @@ from background_jobs import get_process_status, index_project_files
 from llm.answer import generate_prompt_answer
 from config.settings import settings
 from persister.supabase import get_chat, get_repository_by_id
-import os
+# import os
 
 app = Flask(__name__)
-port = int(os.environ.get("PORT", 5000))
-app.run(host='0.0.0.0', port=port)
+# port = int(os.environ.get("PORT", 5000))
+# app.run(host='0.0.0.0', port=port)
 
 
 @app.route("/")
