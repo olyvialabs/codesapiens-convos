@@ -55,8 +55,10 @@ def save_db_docs_to_temp_folder(logger, file_list, project_name):
 
 
 def process_github_repository(process_id, logger, project_name, repository, user, repoOrgName, repoName):
+    print('Cloning repo...')
     clone_repo_to_folder(user['githubInstallationId'],
                          project_name, repoOrgName, repoName)
+    print('Cloned repo successfully')
 
     output_logger = logging.getLogger(project_name)
     output_logger.addHandler(logger)
@@ -75,9 +77,11 @@ def process_github_repository(process_id, logger, project_name, repository, user
 
     output_logger.info(
         "Processing and generating documentation from repository...")
+    print('Logic for generating root config files')
     # Generate all documentation per file
     generate_documentation_for_project_per_file_new(
         project=project, project_name=project_name, output_logger=output_logger)
+    print('Logic for generating root config FINISHED')
     output_logger.info(
         "Documentation from repository processed and generated successfully.")
 
@@ -88,6 +92,7 @@ def process_github_repository(process_id, logger, project_name, repository, user
     all_files = output_project_for_indexing.get_all_files(False)
 
     for file in all_files:
+        print('File outputs processing path', file.path)
         abs_folder_path = os.path.join(os.getcwd(), file.path)
         parts = file.path.split("/")
 
@@ -108,17 +113,19 @@ def process_github_repository(process_id, logger, project_name, repository, user
         rel_path = "/".join(parts[outputs_index+1:])
         raw_docs.append(
             {"abs_path": settings.output_folder+'/'+project_name+'/'+file.path, "path": rel_path, "content": file.get_content(abs_folder_path)})
+    print('Embeeding process')
     embeed_github_files_to_store(
         repository, project_name, user['id'], process_id)
+    print('Embeeding process FINISHED')
 
     output_logger.info("Files indexed correctly.")
     output_logger.info("Process finished.")
 
     # Delete created temp & output folder
-    # if os.path.exists(temp_absolute_dir + '/' + project_name):
-    #     shutil.rmtree(temp_absolute_dir + '/' + project_name)
-    # if os.path.exists(outputs_absolute_dir + '/' + project_name):
-    #     shutil.rmtree(outputs_absolute_dir + '/' + project_name)
+    if os.path.exists(temp_absolute_dir + '/' + project_name):
+        shutil.rmtree(temp_absolute_dir + '/' + project_name)
+    if os.path.exists(outputs_absolute_dir + '/' + project_name):
+        shutil.rmtree(outputs_absolute_dir + '/' + project_name)
     # self.update_state(state='FINISHED')
     output_logger.removeHandler(logger)
 
@@ -312,6 +319,7 @@ def index_project_files(id_user, repository):
                 os.makedirs(temp_absolute_dir + '/' + project_name)
             if not os.path.exists(outputs_absolute_dir + '/' + project_name):
                 os.makedirs(outputs_absolute_dir + '/' + project_name)
+            print('Folders are created, starting process of github repo...')
             process_github_repository(
                 process['id'], initialization_output_logger, project_name, repository, user[0], repoOrgName, repoName)
         else:

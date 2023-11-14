@@ -55,6 +55,8 @@ def embeedSync():
         repository = get_repository_by_id(id_repository)
         if not repository.data:
             continue
+
+        print('Process about to index')
         index_project_files(id_user, repository.data[0])
         # queue_item = index_project_files.delay(id_user, repository.data[0])
         # processes.append(queue_item.id)
