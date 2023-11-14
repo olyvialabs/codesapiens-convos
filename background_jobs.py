@@ -93,15 +93,19 @@ def process_github_repository(process_id, logger, project_name, repository, user
 
         # Find the index of the first occurrence of "convos"
         # TODO!
-        convos_index = parts.index("convos")
+        try:
+            outputs_index = parts.index(settings.output_folder)
+        except ValueError:
+            output_logger.error(f"'outputs' not found in path: {file.path}")
+            continue  # Skip this file if 'outputs' is not in the path
 
         # Extract the path from "outputs" and forward
-        # 3 because:
-        # 0 would be convos
-        # 1 would be convos/outputs
-        # 2 would be convos/outputs/project_name
-        # 3 would be convos/outputs/project_name/...
-        rel_path = "/".join(parts[convos_index+3:])
+        # 1 because:
+        # 0 would be outputs
+        # 1 would be outputs/project_name
+        # Extract the path from "outputs" and forward
+
+        rel_path = "/".join(parts[outputs_index+1:])
         raw_docs.append(
             {"abs_path": settings.output_folder+'/'+project_name+'/'+file.path, "path": rel_path, "content": file.get_content(abs_folder_path)})
     embeed_github_files_to_store(

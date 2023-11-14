@@ -1,9 +1,0 @@
-## All file content
-[bdist_wheel]
-universal = 1
-
-[flake8]
-exclude = docs
-
-
-
