@@ -1,7 +1,7 @@
 # from transformers import RobertaTokenizer, T5ForConditionalGeneration
 import ast
 # import inspect
-
+import time
 import requests
 
 API_URL = "https://api-inference.huggingface.co/models/pasho/codesapiens-poc-code-summarization"
@@ -27,13 +27,28 @@ def ask_to_trained_model(input_text):
     # return tokenizer.decode(generated_ids[0], skip_special_tokens=True)
 
     # 👆 Previous implementation, current issues with heroku lead to using api :(
-    output = query({
-        "inputs": input_text,
-    })
-    print('******* RESPONSE *******')
-    print('******* RESPONSE *******')
-    print(output)
-    return output[0]['generated_text']
+    retry_interval = 7  # seconds
+    max_retries = 50
+    current_retry_count = 0
+
+    while current_retry_count < max_retries:
+        output = query({"inputs": input_text})
+        print('******* RESPONSE *******')
+        print(output)
+
+        # Check if the response contains 'error' and 'estimated_time'
+        if 'error' in output and 'estimated_time' in output:
+            print(
+                f"Retrying in {retry_interval} seconds... (Attempt {current_retry_count + 1}/{max_retries})")
+            current_retry_count += 1
+            time.sleep(retry_interval)
+        else:
+            # Assuming the desired output is in output[0]['generated_text']
+            return output[0]['generated_text']
+
+    # If the maximum number of retries is reached, return an empty string or a failure message
+    print("Maximum retries reached. Returning empty response.")
+    return ""
 
 
 def get_functions_from_file_in_plain_text(file_path):
