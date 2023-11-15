@@ -97,7 +97,6 @@ def process_github_repository(process_id, logger, project_name, repository, user
         parts = file.path.split("/")
 
         # Find the index of the first occurrence of "convos"
-        # TODO!
         try:
             outputs_index = parts.index(settings.output_folder)
         except ValueError:
@@ -122,10 +121,10 @@ def process_github_repository(process_id, logger, project_name, repository, user
     output_logger.info("Process finished.")
 
     # Delete created temp & output folder
-    if os.path.exists(temp_absolute_dir + '/' + project_name):
-        shutil.rmtree(temp_absolute_dir + '/' + project_name)
-    if os.path.exists(outputs_absolute_dir + '/' + project_name):
-        shutil.rmtree(outputs_absolute_dir + '/' + project_name)
+    # if os.path.exists(temp_absolute_dir + '/' + project_name):
+    #     shutil.rmtree(temp_absolute_dir + '/' + project_name)
+    # if os.path.exists(outputs_absolute_dir + '/' + project_name):
+    #     shutil.rmtree(outputs_absolute_dir + '/' + project_name)
     # self.update_state(state='FINISHED')
     output_logger.removeHandler(logger)
 
@@ -272,15 +271,20 @@ def process_normal_repository(process_id, user, repository_id, logger, project_n
         parts = file.path.split("/")
 
         # Find the index of the first occurrence of "convos"
-        convos_index = parts.index("convos")
+        # Find the index of the first occurrence of "convos"
+        try:
+            outputs_index = parts.index(settings.output_folder)
+        except ValueError:
+            output_logger.error(f"'outputs' not found in path: {file.path}")
+            continue  # Skip this file if 'outputs' is not in the path
 
         # Extract the path from "outputs" and forward
-        # 3 because:
-        # 0 would be convos
-        # 1 would be convos/outputs
-        # 2 would be convos/outputs/project_name
-        # 3 would be convos/outputs/project_name/...
-        rel_path = "/".join(parts[convos_index+3:])
+        # 1 because:
+        # 0 would be outputs
+        # 1 would be outputs/project_name
+        # Extract the path from "outputs" and forward
+
+        rel_path = "/".join(parts[outputs_index+1:])
         raw_docs.append(
             {"abs_path": settings.output_folder+'/'+project_name+'/'+file.path, "path": rel_path, "content": file.get_content(abs_folder_path)})
     embeed_md_files_to_store(project_id, repository_id, raw_docs,
@@ -338,6 +342,12 @@ def index_project_files(id_user, repository):
         print(e)
         print(f'Error: {e}')
     logs = initialization_output_logger.get_logs()
+    if not is_github_repo:
+        print(logs)
+        print(logs)
+        print(logs)
+        print(logs)
+        print('about to send logs! to manuak repo')
     update_process_end_date_and_logs(process['id'], logs)
 
     # Delete created temp & output folder
