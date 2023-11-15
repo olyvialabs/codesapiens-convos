@@ -110,7 +110,7 @@ def generate_documentation_for_project_per_file_new(project: ProjectStructure, p
                 response = ask_to_trained_model(fn[1])
                 if response:
                     saving_info = saving_info + \
-                        f"## {fn[0]}\n### Documentation\n{response}\n### Code\n```python\n{fn[1]}\n```\n\n\n"
+                        f"## {fn[0]}\n### Documentation\n```{response}```\n### Code\n```python\n{fn[1]}\n```\n\n\n"
             print(f'Now processing function: ${fns}')
             if len(fns) == 0:
                 # if we dont have functions, we just send the whole file
@@ -129,7 +129,7 @@ def generate_documentation_for_project_per_file_new(project: ProjectStructure, p
                             try:
                                 response = ask_to_trained_model(
                                     processed_file_to_ask)
-                                saving_info = f"## All file docs\n### Documentation\n{response}\n### Code\n```python\n{all_file_content}\n```\n\n\n"
+                                saving_info = f"## All file docs\n### Documentation\n```{response}```\n### Code\n```python\n{all_file_content}\n```\n\n\n"
                             except Exception as e:
                                 response = ask_to_trained_model(
                                     processed_file_to_ask)
