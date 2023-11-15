@@ -137,6 +137,8 @@ def generate_documentation_for_project_per_file_new(project: ProjectStructure, p
                         else:
                             saving_info = f"## All file content\n{all_file_content}\n\n\n"
                     except Exception as e:
+                        all_file_content = file.read()
+                        saving_info = f"## All file content\n{all_file_content}\n\n\n"
                         print(f'Error: {e}')
                         if (output_logger is not None):
                             output_logger.error(f'Error: {e}')
