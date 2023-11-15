@@ -3,6 +3,7 @@ from background_jobs import get_process_status, index_project_files
 from llm.answer import generate_prompt_answer
 from config.settings import settings
 from persister.supabase import get_chat, get_repository_by_id
+import sys
 
 app = Flask(__name__)
 
@@ -54,13 +55,14 @@ def embeedSync():
     for id_repository in id_repositories:
         repository = get_repository_by_id(id_repository)
         if not repository.data:
-            return jsonify({"error": "Repository does not exist"}), 404
+            continue
 
         print('Process about to index')
         index_project_files(id_user, repository.data[0])
         # queue_item = index_project_files.delay(id_user, repository.data[0])
         # processes.append(queue_item.id)
         # process_status = get_process_status(queue_item.id)
+    sys.stdout.flush()
     return {"status": "STARTED", "processes": processes}
 
 
