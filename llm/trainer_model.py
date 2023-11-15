@@ -3,6 +3,7 @@ import ast
 # import inspect
 import time
 import requests
+from lib2to3 import refactor
 
 API_URL = "https://api-inference.huggingface.co/models/pasho/codesapiens-poc-code-summarization"
 headers = {"Authorization": "Bearer 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"}
@@ -51,11 +52,31 @@ def ask_to_trained_model(input_text):
     return ""
 
 
+def convert_python2_to_python3(code):
+    """
+    Convert Python 2 code to Python 3 using lib2to3.
+
+    :param code: A string containing Python 2 code.
+    :return: A string containing converted Python 3 code.
+
+    IT WAS BREAKING FOR SOME CASES, DUE SYNTAX ISSUES :(
+    THIS SHOULD FIX MOST OF THE SYNTAX ISSUES
+    """
+    # Set up the refactoring tool
+    fixers = refactor.get_fixers_from_package('lib2to3.fixes')
+    tool = refactor.RefactoringTool(fixers)
+
+    # Convert the code
+    tree = tool.refactor_string(code, name='conversion')
+    return str(tree)
+
+
 def get_functions_from_file_in_plain_text(file_path):
     try:
         with open(file_path, 'r') as file:
             file_content = file.read()
 
+        file_content = convert_python2_to_python3(file_content)
         # Parse the file content
         tree = ast.parse(file_content)
 
