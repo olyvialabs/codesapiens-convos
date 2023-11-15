@@ -54,7 +54,7 @@ def embeedSync():
     for id_repository in id_repositories:
         repository = get_repository_by_id(id_repository)
         if not repository.data:
-            continue
+            return jsonify({"error": "Repository does not exist"}), 404
 
         print('Process about to index')
         index_project_files(id_user, repository.data[0])
