@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str = None
     CROSS_ORIGIN_SERVICE_SECRET: str = None
     GITHUB_APP_ID_NUMBER: str = None
+    GITHUB_APP_PRIVATE_KEY_BASE64: str = None
 
 
 path = Path(__file__).parent.parent.absolute()

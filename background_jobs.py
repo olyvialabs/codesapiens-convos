@@ -342,14 +342,7 @@ def index_project_files(id_user, repository):
         print(e)
         print(f'Error: {e}')
     logs = initialization_output_logger.get_logs()
-    if not is_github_repo:
-        print(logs)
-        print(logs)
-        print(logs)
-        print(logs)
-        print('about to send logs! to manuak repo')
     update_process_end_date_and_logs(process['id'], logs)
-
     # Delete created temp & output folder
     if os.path.exists(temp_absolute_dir + '/' + project_name):
         shutil.rmtree(temp_absolute_dir + '/' + project_name)

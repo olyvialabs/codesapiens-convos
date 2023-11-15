@@ -6,6 +6,7 @@ import os
 from config.settings import settings
 import shutil
 from git import Repo
+import base64
 
 # Constants
 APP_ID = settings.GITHUB_APP_ID_NUMBER  # GitHub App ID
@@ -16,9 +17,11 @@ GITHUB_API_URL = 'https://api.github.com/'
 
 def generate_jwt():
     """Generate JWT for GitHub App."""
-    with open(PRIVATE_KEY_PATH, 'r') as key_file:
-        private_key = key_file.read()
-
+    private_key_encoded = settings.GITHUB_APP_PRIVATE_KEY_BASE64
+    if not private_key_encoded:
+        raise ValueError(
+            f"The environment variable 'GITHUB_APP_PRIVATE_KEY_BASE64' is not set")
+    private_key = base64.b64decode(private_key_encoded)
     # Create JWT token which is valid for 10 minutes
     payload = {
         'iat': int(time.time()),
