@@ -30,6 +30,9 @@ def ask_to_trained_model(input_text):
     output = query({
         "inputs": input_text,
     })
+    print('******* RESPONSE *******')
+    print('******* RESPONSE *******')
+    print(output)
     return output[0]['generated_text']
 
 

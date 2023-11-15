@@ -126,10 +126,14 @@ def generate_documentation_for_project_per_file_new(project: ProjectStructure, p
                             indented_lines = [
                                 '    ' + line for line in non_import_lines]
                             processed_file_to_ask = [''.join(indented_lines)]
-
-                            response = ask_to_trained_model(
-                                processed_file_to_ask)
-                            saving_info = f"## All file docs\n### Documentation\n{response}\n### Code\n```python\n{all_file_content}\n```\n\n\n"
+                            try:
+                                response = ask_to_trained_model(
+                                    processed_file_to_ask)
+                                saving_info = f"## All file docs\n### Documentation\n{response}\n### Code\n```python\n{all_file_content}\n```\n\n\n"
+                            except Exception as e:
+                                response = ask_to_trained_model(
+                                    processed_file_to_ask)
+                                saving_info = f"## All file docs\n### Code\n```python\n{all_file_content}\n```\n\n\n"
                         else:
                             saving_info = f"## All file content\n{all_file_content}\n\n\n"
                     except Exception as e:
