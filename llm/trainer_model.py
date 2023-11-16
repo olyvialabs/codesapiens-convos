@@ -4,7 +4,7 @@ import ast
 import time
 import requests
 from lib2to3 import refactor
-
+from transformers import T5ForConditionalGeneration, RobertaTokenizer
 API_URL = "https://api-inference.huggingface.co/models/pasho/codesapiens-poc-code-summarization"
 headers = {"Authorization": "Bearer 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"}
 
@@ -27,7 +27,7 @@ def ask_to_trained_model(input_text):
     # generated_ids = model.generate(input_ids, max_length=10)
     # return tokenizer.decode(generated_ids[0], skip_special_tokens=True)
 
-    # 👆 Previous implementation, current issues with heroku lead to using api :(
+    # # 👆 Previous implementation, current issues with heroku lead to using api :(
     retry_interval = 7  # seconds
     max_retries = 50
     current_retry_count = 0
@@ -50,6 +50,10 @@ def ask_to_trained_model(input_text):
     # If the maximum number of retries is reached, return an empty string or a failure message
     print("Maximum retries reached. Returning empty response.")
     return ""
+
+
+# print(ask_to_trained_model(
+#     'def clear_logs(self):\n  self.logs.clear()'))
 
 
 def convert_python2_to_python3(code):
