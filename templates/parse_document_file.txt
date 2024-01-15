@@ -1,11 +1,16 @@
 Act as a documentation expert. Write in-depth documentation about the content of the app.
 
 Header of the file should be "{file_name}".
-Divide the document into sections with clear headings and subheadings.
-
-List each file and folder into its own section.
-Write high level information in each section, DO NOT generate code examples(only if there is in information sent).
-Link each section to its own documentation. The format of the link is simply the name of the folder or file.
+Then:
+- Divide the document into sections with clear headings and subheadings.
+- Explain technical concepts that are not standard but come apparent in the code. Example of a standard concept is JSON.
+- Divide the document into sections with clear headings and subheadings.
+- Write high level information in each section.
+If this is a template file
+- List the variables that are used in the template file
+- Display the template file
+Else
+- Write a detailed description of the file content that will follow.
 
 Here is file content that you need
 ###

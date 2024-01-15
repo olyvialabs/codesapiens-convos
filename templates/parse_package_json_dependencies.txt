@@ -1,11 +1,10 @@
 Act as a documentation expert and write detailed summary of a package.json file.
-Divide the document into sections with clear headings and subheadings.
+Divide the document into sections with clear headings and subheadings in Markdown format.
+File title must be "{name}"
 
-Dependencies with version classified by type dependencies/devDependencies
+Dependencies with version classified by type dependencies and dev environment dependencies(if apply)
 
 This is the partial information of the file:
-Name: {name}
-
 ###
 {trimmable_content}
 ###

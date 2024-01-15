@@ -34,6 +34,9 @@ def generate_jwt():
 def get_installation_access_token(installation_id):
     """Get installation access token for a GitHub App installation."""
     jwt_token = generate_jwt()
+    print("the installation id", installation_id)
+    print("the installation id", installation_id)
+    print("the installation id", installation_id)
     headers = {
         'Authorization': f'Bearer {jwt_token}',
         'Accept': 'application/vnd.github.v3+json'
@@ -42,8 +45,16 @@ def get_installation_access_token(installation_id):
         f'https://api.github.com/app/installations/{installation_id}/access_tokens',
         headers=headers
     )
+
+    if response.status_code != 200:
+        # Log the error details and return None or raise a custom exception
+        # You can log response.text or response.json() based on the API's error message format
+        print(
+            f"Error fetching installation access token: {response.status_code} - {response.text}")
+        return None
+
     response_data = response.json()
-    return response_data['token']
+    return response_data.get('token')
 
 
 def clone_repo_to_folder(installation_id, folder_path, org_name, repo_name):

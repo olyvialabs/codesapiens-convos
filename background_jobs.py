@@ -1,31 +1,29 @@
 from parser.file.ProjectStructure import ProjectStructure
 from parser.file.FolderStructure import FolderStructure
-from parser.code.ParseCode import generate_root_config_files, generate_documentation_for_project_per_file, generate_documentation_for_project_per_file_new, generate_documentation_for_project_per_folder
 from parser.code.RepoHandling import clone_repo_to_folder
 from llm.open_ai import get_gpt_response_from_template
 from config.settings import settings
 import json
 from llm.embeeding import embeed_md_files_to_store, embeed_github_files_to_store
-from llm.tokens import group_and_partition_documents
-from persister.supabase import update_process_end_date_and_logs, insert_process, get_user, get_unsynced_repository_docs
+from persister.supabase import update_process_end_date_and_logs, insert_process, get_user, get_unsynced_repository_docs, get_project_by_id
 from logger.Logger import Logger
 import logging
 import os
 import shutil
-# from celery import Celery
-# from celery.result import AsyncResult
-# from parser.code.base import transform_to_docs
-# from parser.code.javascript import extract_functions_and_classes
-# from parser.DirectoryIterator import DirectoryIterator
-# from celery.utils.log import get_task_logger
-from llm.tokens import group_and_partition_documents
+from celery import Celery
+from celery.result import AsyncResult
+from celery.utils.log import get_task_logger
 from parser.file.ProjectStructure import ProjectStructure
 from config.settings import settings
 from datetime import datetime
+from pathlib import Path
+from config.documents_by_extension import list_of_accepted_docs_file_extensions
+import re
+import requests
 
 
-# celery = Celery()
-# celery.config_from_object("config.celery_config")
+celery = Celery()
+celery.config_from_object("config.celery_config")
 temp_absolute_dir = os.path.join(os.getcwd(), settings.temp_folder)
 outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
 
@@ -54,82 +52,7 @@ def save_db_docs_to_temp_folder(logger, file_list, project_name):
     return files
 
 
-def process_github_repository(process_id, logger, project_name, repository, user, repoOrgName, repoName):
-    print('Cloning repo...')
-    clone_repo_to_folder(user['githubInstallationId'],
-                         project_name, repoOrgName, repoName)
-    print('Cloned repo successfully')
-
-    output_logger = logging.getLogger(project_name)
-    output_logger.addHandler(logger)
-    output_logger.info("Starting analysis of " +
-                       project_name.replace('|', '/')+"...")
-
-    project = ProjectStructure(
-        target_path=settings.temp_folder+'/'+project_name)
-    project_main_folder = FolderStructure(
-        settings.temp_folder+'/'+project_name)
-
-    # Generates a JSON with all config files classified
-    list_of_files_concatenated = ''
-    for file_structure in project_main_folder.files:
-        list_of_files_concatenated += file_structure.absolute_path + '\n'
-
-    output_logger.info(
-        "Processing and generating documentation from repository...")
-    print('Logic for generating root config files')
-    # Generate all documentation per file
-    generate_documentation_for_project_per_file_new(
-        project=project, project_name=project_name, output_logger=output_logger)
-    print('Logic for generating root config FINISHED')
-    output_logger.info(
-        "Documentation from repository processed and generated successfully.")
-
-    output_logger.info("Indexing Processed Github data...")
-    output_project_for_indexing = ProjectStructure(
-        target_path=outputs_absolute_dir+'/'+project_name)
-    raw_docs = []
-    all_files = output_project_for_indexing.get_all_files(False)
-
-    for file in all_files:
-        print('File outputs processing path', file.path)
-        abs_folder_path = os.path.join(os.getcwd(), file.path)
-        parts = file.path.split("/")
-
-        # Find the index of the first occurrence of "convos"
-        try:
-            outputs_index = parts.index(settings.output_folder)
-        except ValueError:
-            output_logger.error(f"'outputs' not found in path: {file.path}")
-            continue  # Skip this file if 'outputs' is not in the path
-
-        # Extract the path from "outputs" and forward
-        # 1 because:
-        # 0 would be outputs
-        # 1 would be outputs/project_name
-        # Extract the path from "outputs" and forward
-
-        rel_path = "/".join(parts[outputs_index+1:])
-        raw_docs.append(
-            {"abs_path": settings.output_folder+'/'+project_name+'/'+file.path, "path": rel_path, "content": file.get_content(abs_folder_path)})
-    print('Embeeding process')
-    embeed_github_files_to_store(
-        repository, project_name, user['id'], process_id)
-    print('Embeeding process FINISHED')
-
-    output_logger.info("Files indexed correctly.")
-    output_logger.info("Process finished.")
-
-    # Delete created temp & output folder
-    # if os.path.exists(temp_absolute_dir + '/' + project_name):
-    #     shutil.rmtree(temp_absolute_dir + '/' + project_name)
-    # if os.path.exists(outputs_absolute_dir + '/' + project_name):
-    #     shutil.rmtree(outputs_absolute_dir + '/' + project_name)
-    # self.update_state(state='FINISHED')
-    output_logger.removeHandler(logger)
-
-
-def process_github_repository_with_gpt(process_id, logger, project_name, repository, user, repoOrgName, repoName):
+def process_github_repository(process_id, logger, project_name, repository, user, repoOrgName, repoName, id_project):
     clone_repo_to_folder(user['githubInstallationId'],
                          project_name, repoOrgName, repoName)
 
@@ -192,29 +115,30 @@ def process_github_repository_with_gpt(process_id, logger, project_name, reposit
         target_path=outputs_absolute_dir+'/'+project_name)
     raw_docs = []
     all_files = output_project_for_indexing.get_all_files(False)
+    length_of_all_files = len(all_files)
 
     for file in all_files:
+        print('File outputs processing path', file.path)
         abs_folder_path = os.path.join(os.getcwd(), file.path)
         parts = file.path.split("/")
 
         # Find the index of the first occurrence of "convos"
-        # @TODO!
-        # @TODO!
-        # @TODO!
-        # @TODO!
-        convos_index = parts.index("convos")
+        try:
+            outputs_index = parts.index(settings.output_folder)
+        except ValueError:
+            output_logger.error(f"'outputs' not found in path: {file.path}")
+            continue  # Skip this file if 'outputs' is not in the path
 
         # Extract the path from "outputs" and forward
-        # 3 because:
-        # 0 would be convos
-        # 1 would be convos/outputs
-        # 2 would be convos/outputs/project_name
-        # 3 would be convos/outputs/project_name/...
-        rel_path = "/".join(parts[convos_index+3:])
+        # 1 because:
+        # 0 would be outputs
+        # 1 would be outputs/project_name
+        # Extract the path from "outputs" and forward
+        rel_path = "/".join(parts[outputs_index+1:])
         raw_docs.append(
             {"abs_path": settings.output_folder+'/'+project_name+'/'+file.path, "path": rel_path, "content": file.get_content(abs_folder_path)})
     embeed_github_files_to_store(
-        repository, project_name, user['id'], process_id)
+        repository, project_name, user['id'], process_id, id_project)
 
     output_logger.info("Indexed data successfully updated.")
     output_logger.info("Process finished.")
@@ -226,6 +150,7 @@ def process_github_repository_with_gpt(process_id, logger, project_name, reposit
     #     shutil.rmtree(outputs_absolute_dir + '/' + project_name)
     # self.update_state(state='FINISHED')
     output_logger.removeHandler(logger)
+    return length_of_all_files
 
 
 def process_normal_repository(process_id, user, repository_id, logger, project_name, files_map, project_id):
@@ -265,6 +190,7 @@ def process_normal_repository(process_id, user, repository_id, logger, project_n
         target_path=outputs_absolute_dir+'/'+project_name)
     raw_docs = []
     all_files = output_project_for_indexing.get_all_files(False)
+    length_of_all_files = len(all_files)
 
     for file in all_files:
         abs_folder_path = os.path.join(os.getcwd(), file.path)
@@ -293,73 +219,220 @@ def process_normal_repository(process_id, user, repository_id, logger, project_n
     output_logger.info("Indexed data successfully updated.")
     output_logger.info("Process finished.")
     output_logger.removeHandler(logger)
+    return length_of_all_files
 
+
+#########
+# Helpers
+#########
+def get_package_json_data_for_dependencies(filename: str = 'package.json'):
+    with open(filename, 'r') as file:
+        data = json.load(file)
+
+        dependencies = data.get('dependencies', {})
+        dev_dependencies = data.get('devDependencies', {})
+
+        dependencies_mixed = 'Dependencies:\n'
+        for name, version in dependencies.items():
+            dependencies_mixed = dependencies_mixed + \
+                f"{name}: {version}\n"
+        dependencies_mixed = '\ndevDependencies:\n'
+        for name, version in dev_dependencies.items():
+            dependencies_mixed = dependencies_mixed + \
+                f"{name}: {version}\n"
+        return_data = {
+            'name': data.get('name', ''),
+            'trimmable_content': dependencies_mixed
+        }
+        return return_data
+
+
+def get_package_json_data(filename: str = 'package.json'):
+    with open(filename, 'r') as file:
+        data = json.load(file)
+
+        scripts = data.get('scripts', {})
+
+        scripts_mixed = ''
+        for name, script in scripts.items():
+            scripts_mixed = scripts_mixed + \
+                f"{name}: {script}\n"
+        return_data = {
+            'trimmable_content': scripts_mixed,
+            'name': data.get('name', ''),
+            'version': data.get('version', ''),
+            'description': data.get('description', ''),
+            'author': data.get('author', ''),
+            'license': data.get('license', ''),
+            'homepage': data.get('homepage', ''),
+        }
+        return return_data
+
+
+def _read_content_from_path(absolute_path):
+    with open(absolute_path, 'r') as file:
+        return file.read()
+
+
+def get_file_summary(file_absolute_path):
+    file_content = _read_content_from_path(file_absolute_path)
+    regex = re.compile(r'^# .+[\s\S]*?^## .+', re.MULTILINE)
+    match = regex.search(file_content)
+
+    if match:
+        return match.group(0).strip()
+
+    if len(file_content) > 350:
+        return file_content[:350] + '...'
+
+    return file_content
+
+
+def get_folder_summary(folder_absolute_path):
+    # TODO: this is currently always empty as we are not having
+    # the folders correctly in order, so when we arrive to the folder we don't have the files
+    # it should be fixed in the future
+    # solution: folder retrieval should be back-to-front instead of right now front-to-back
+
+    return ''
+
+
+#########
+# Subsequent tasks!
+# Tasks made for processing fales
+#########
+def generate_documentation_for_project_per_file(project: ProjectStructure, project_name='', output_logger: logging = None):
+    all_files = project.get_all_files(keep_root_files=False)
+    current_dir = Path(os.getcwd())
+
+    for file in all_files:
+        try:
+            if (output_logger is not None):
+                output_logger.info(f'Processing file: {file.entry}')
+            print(f'Now processing file: ${file.entry}')
+            temp_file_path = Path(file.absolute_path)
+            file_extension = temp_file_path.suffix[1:]  # remove the dot
+            print('lol')
+            result_path = current_dir.joinpath(temp_file_path.parent)
+            result_path_str = str(result_path)
+
+            result_path_str = result_path_str.replace(
+                settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
+
+            save_name_format = f"{temp_file_path.stem}.{file_extension}"
+            finish_file_ext = 'md'
+            if not save_name_format.endswith('.'):
+                finish_file_ext = '.md'
+            save_name_format = f"{save_name_format}{finish_file_ext}"
+            error = None
+            if temp_file_path.name.endswith('package.json'):
+                _, error = get_gpt_response_from_template(
+                    data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+                if not error:
+                    _, error = get_gpt_response_from_template(
+                        data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
+            elif file_extension in list_of_accepted_docs_file_extensions:
+                _, error = get_gpt_response_from_template(
+                    data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+            else:
+                _, error = get_gpt_response_from_template(
+                    data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+            if error:
+                if (output_logger is not None):
+                    output_logger.error(
+                        'Error on catched calls from openai', error)
+                print('Error on generating', error)
+        except Exception as e:
+            print('Error on calls from openai', error)
+            if (output_logger is not None):
+                output_logger.error(
+                    'Error on calls from openai fatal exception', error)
+
+
+def generate_documentation_for_project_per_folder(project: ProjectStructure, project_name='', output_logger: logging = None):
+    all_folders = project.get_all_folders()
+    all_folders.reverse()
+    root_path = Path(f"{settings.output_folder}/{project_name}")
+    for folder in all_folders:
+        print(f'Now processing folder: ${folder.path}')
+        if (output_logger is not None):
+            output_logger.info(f'Processing folder: {folder.path}')
+        temp_project_struct = FolderStructure(folder_path=folder.path)
+        list_of_files_listed_in_folder = []
+        for file in temp_project_struct.files:
+            file_path_obj = Path(file.path)
+
+            # Get the relative path from the root
+            relative_path = file_path_obj.relative_to(root_path)
+            list_of_files_listed_in_folder.append(
+                {'name': file.name, 'path': str(relative_path), 'fileOrFolder': 'file', 'summary': get_file_summary(file.absolute_path)})
+        for inner_folder in temp_project_struct.folders:
+            folder_path_obj = Path(inner_folder.path)
+
+            # Get the relative path from the root
+            relative_path = folder_path_obj.relative_to(root_path)
+            list_of_files_listed_in_folder.append(
+                {'name': inner_folder.name, 'path': str(relative_path), 'fileOrFolder': 'folder', 'summary': get_folder_summary(inner_folder.absolute_path)})
+        query_content = json.dumps(list_of_files_listed_in_folder)
+        _, error = get_gpt_response_from_template(
+            data={'mdFileName': folder.name, 'trimmable_content': query_content}, template='parse_folder_document', trim_content=True, save_to_subfolder=folder.path, save_to_name=folder.name + '.md', ignore_output_folder_on_save=True)
+        if error:
+            if (output_logger is not None):
+                output_logger.error(
+                    'Error on calls from openai in folders processing', error)
+            print('Error on calls from openai in folders processing', error)
+
+
+def generate_root_config_files(config_list=[], project_name=''):
+    for config in config_list:
+        # this path comes from "what_are_these_config_files" JSON
+        file_name = config['path']
+        file_name_path = Path(file_name)
+        print(f'Now processing: ${file_name} {file_name_path.as_uri()}')
+        configuration_folder_path = project_name+'/Configuration'
+        if config['isConfig']:
+            config_list = get_gpt_response_from_template(
+                data={'project_name': project_name, 'file_name': file_name}, template='general_config', trim_content=True, trim_path=file_name, save_to_subfolder=configuration_folder_path, save_to_name=file_name_path.stem + '.md')
+        elif config['isAppSpecific']:
+            config_list = get_gpt_response_from_template(
+                data={'project_name': project_name, 'file_name': file_name}, template='app_config', trim_content=True, trim_path=file_name, save_to_subfolder=configuration_folder_path, save_to_name=file_name_path.stem + '.md')
+        elif config['isCodeRelated']:
+            config_list = get_gpt_response_from_template(
+                data={'file_name': file_name}, template='parse_root_code_document', trim_content=True, trim_path=file_name, save_to_subfolder=configuration_folder_path, save_to_name=file_name_path.stem + '.md')
+
+
+def record_stripe_files(payload):
+    url = settings.MONOLITH_URL + "/api/stripe/sync-files-credits"
+    # Make the POST request
+    response = requests.post(url, json=payload)
+
+    # Check the response
+    if response.ok:
+        print("Request successful.")
+        print("Response:", response.text)
+    else:
+        print("Request failed.")
+        print("Status Code:", response.status_code)
+        print("Response:", response.text)
 
 # @celery.task(bind=True)
-# @TODO: To add `self` at start of parameters
-def index_project_files(id_user, repository):
-    # self.update_state(state='STARTED')
-    id_repository = repository['id']
-    # id_project = repository['projectId']
-    is_github_repo = repository['repositoryType'] == "github"
-
-    if not os.path.exists(temp_absolute_dir):
-        os.makedirs(temp_absolute_dir)
-    initialization_output_logger = Logger()
-    formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    initialization_output_logger.setFormatter(formatter)
-    # Pull data
-    process = insert_process(
-        repository['projectId'], id_repository, datetime.now().isoformat())
-    try:
-        user = get_user(id_user).data
-        if is_github_repo:
-            repoOrgName = repository['repoOrganizationName']
-            repoName = repository['repoProjectName']
-            project_name = f'{repoOrgName}|{repoName}'
-
-            if not os.path.exists(temp_absolute_dir + '/' + project_name):
-                os.makedirs(temp_absolute_dir + '/' + project_name)
-            if not os.path.exists(outputs_absolute_dir + '/' + project_name):
-                os.makedirs(outputs_absolute_dir + '/' + project_name)
-            print('Folders are created, starting process of github repo...')
-            process_github_repository(
-                process['id'], initialization_output_logger, project_name, repository, user[0], repoOrgName, repoName)
-        else:
-            project_name = id_repository
-            db_repo_docs = get_unsynced_repository_docs(id_repository).data
-            files_map = save_db_docs_to_temp_folder(
-                initialization_output_logger, db_repo_docs, project_name)
-
-            if not os.path.exists(temp_absolute_dir + '/' + project_name):
-                os.makedirs(temp_absolute_dir + '/' + project_name)
-            if not os.path.exists(outputs_absolute_dir + '/' + project_name):
-                os.makedirs(outputs_absolute_dir + '/' + project_name)
-            process_normal_repository(
-                process['id'], user[0], repository['id'], initialization_output_logger, project_name, files_map, repository['projectId'])
-    except Exception as e:
-        print(e)
-        print(f'Error: {e}')
-    logs = initialization_output_logger.get_logs()
-    update_process_end_date_and_logs(process['id'], logs)
-    # Delete created temp & output folder
-    if os.path.exists(temp_absolute_dir + '/' + project_name):
-        shutil.rmtree(temp_absolute_dir + '/' + project_name)
-    if os.path.exists(outputs_absolute_dir + '/' + project_name):
-        shutil.rmtree(outputs_absolute_dir + '/' + project_name)
-    # self.update_state(state='FINISHED')
-
-    return 'FINISHED'
+# self,
 
 
-# @celery.task(bind=True)
-def index_project_files_with_gpt(self, id_user, repository):
+@celery.task(bind=True)
+def index_project_files(self, id_user, repository, id_project):
+    print('=================')
+    print('=================')
+    print(id_user)
+    print(id_user)
+    print(id_user)
+    print(id_user)
+    print(id_user)
+    print(id_user)
+    print(json.dumps(repository, separators=(',', ':')))
     self.update_state(state='STARTED')
     id_repository = repository['id']
-    # id_project = repository['projectId']
     is_github_repo = repository['repositoryType'] == "github"
-
     if not os.path.exists(temp_absolute_dir):
         os.makedirs(temp_absolute_dir)
     initialization_output_logger = Logger()
@@ -368,9 +441,10 @@ def index_project_files_with_gpt(self, id_user, repository):
     initialization_output_logger.setFormatter(formatter)
     # Pull data
     process = insert_process(
-        repository['projectId'], id_repository, datetime.now().isoformat())
+        id_project, id_repository, datetime.now().isoformat())
     try:
         user = get_user(id_user).data
+        processed_files = 0
         if is_github_repo:
             repoOrgName = repository['repoOrganizationName']
             repoName = repository['repoProjectName']
@@ -380,27 +454,37 @@ def index_project_files_with_gpt(self, id_user, repository):
                 os.makedirs(temp_absolute_dir + '/' + project_name)
             if not os.path.exists(outputs_absolute_dir + '/' + project_name):
                 os.makedirs(outputs_absolute_dir + '/' + project_name)
-            process_github_repository_with_gpt(
-                process['id'], initialization_output_logger, project_name, repository, user[0], repoOrgName, repoName)
+            processed_files = process_github_repository(
+                process['id'], initialization_output_logger, project_name, repository, user[0], repoOrgName, repoName, id_project)
         else:
             project_name = id_repository
+            print('BEFORE ENTERING get_unsynced_repository_docs',)
             db_repo_docs = get_unsynced_repository_docs(id_repository).data
+            print('BEFORE ENTERING save_db_docs_to_temp_folder',)
             files_map = save_db_docs_to_temp_folder(
                 initialization_output_logger, db_repo_docs, project_name)
+            print('passed save_db_docs_to_temp_folder',)
 
             if not os.path.exists(temp_absolute_dir + '/' + project_name):
                 os.makedirs(temp_absolute_dir + '/' + project_name)
             if not os.path.exists(outputs_absolute_dir + '/' + project_name):
                 os.makedirs(outputs_absolute_dir + '/' + project_name)
-            process_normal_repository(
-                process['id'], user[0], repository['id'], initialization_output_logger, project_name, files_map, repository['projectId'])
-    except Exception as e:
-        print(e)
-        print(e)
-        print(f'Error: {e}')
-    logs = initialization_output_logger.get_logs()
-    update_process_end_date_and_logs(process['id'], logs)
+            processed_files = process_normal_repository(
+                process['id'], user[0], repository['id'], initialization_output_logger, project_name, files_map, id_project)
 
+        logs = initialization_output_logger.get_logs()
+        update_process_end_date_and_logs(process['id'], logs)
+        orgResponse = get_project_by_id(id_project)
+        print(orgResponse.data)
+
+        payload = {
+            "quantity": processed_files,
+            "orgId": orgResponse.data[0]['organizationId']
+        }
+        if processed_files > 0:
+            record_stripe_files(payload)
+    except Exception as e:
+        print('Fatal on index project files', e.with_traceback())
     # Delete created temp & output folder
     if os.path.exists(temp_absolute_dir + '/' + project_name):
         shutil.rmtree(temp_absolute_dir + '/' + project_name)
@@ -409,52 +493,3 @@ def index_project_files_with_gpt(self, id_user, repository):
     self.update_state(state='FINISHED')
 
     return 'FINISHED'
-
-
-# logger = get_task_logger(__name__)
-
- # return {"status": process.status, "details": process.info}
-
-
-# def get_metadata_from_filename(title):
-#     return {'title': title}
-
-
-# ['.js', '.md', '.ts', '.tsx', '.jsx', ],
-# @celery.task(bind=True)
-# def index_project_files(self):
-#     print(celery.autodiscover_tasks())
-#     self.update_state(state='STARTING')
-#     # full_path = 'temp'  # ,./outputs'
-
-#     # reader_params = {
-#     #     'input_dir': full_path,
-#     #     'input_files': None,
-#     #     'recursive': True,
-#     #     'required_exts': ['.md'],  # ['.js'],
-#     #     'num_files_limit': None,
-#     #     'exclude_hidden': True,
-#     #     'file_metadata': get_metadata_from_filename
-#     # }
-
-#     # functions_dict, classes_dict = extract_functions_and_classes(
-#     #    './temp/test-code')
-#     # transform_to_docs(functions_dict, classes_dict, './temp/test-code')
-#     # raw_docs = DirectoryIterator(**reader_params).load_data()
-#    # Generate documentation for all folders
-#     project_name = '0xpasho|codesapiens'
-#     output_project = ProjectStructure(
-#         target_path=settings.output_folder+'/'+project_name)
-#     all_files = output_project.get_all_files()
-#     self.update_state(state='PROGRESS')
-#     raw_docs = []
-#     for file in all_files:
-#         raw_docs.append(file.get_content(file.path))
-#     raw_docs_v2 = group_and_partition_documents(documents=raw_docs)
-#     parsed_docs = [Document.to_langchain_format(
-#         raw_doc) for raw_doc in raw_docs_v2]
-#     embeed_md_files_to_store(docs=parsed_docs)
-
-#     self.update_state(state='FINISHED')
-
-#     return {"status": "FINISHED"}

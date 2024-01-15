@@ -1,6 +1,6 @@
 This is a configuration file that is meant for developers of {project_name}.
 If you are using {project_name} as a package in your project this file is irrelevant.
-Act as a documentation expert. Mention {file_name}. Write detailed description of this configuration file
+Act as a documentation expert. Mention {file_name}. Write detailed description of this configuration file and extend on important notes.
 ###
 {trimmable_content}
 ###

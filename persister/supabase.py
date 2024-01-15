@@ -94,7 +94,8 @@ def update_document_embeeding(document_id: str):
 
 def get_chat_history(id_chat: str):
     supabase = get_supabase()
-    return supabase.table('ChatHistory').select('*').eq('chatId', id_chat).order('created_at', desc=False).execute()
+    # max latest 7 msgs
+    return supabase.table('ChatHistory').select('*').eq('chatId', id_chat).order('created_at', desc=False).limit(7).execute()
 
 
 def get_chat(id_chat: str):
@@ -210,3 +211,8 @@ def insert_billing_question_processed(user_id: str, chat_id: str, project_id: st
 def get_repository_by_id(repository_id: str):
     supabase = get_supabase()
     return supabase.table('Repository').select('*').eq('id', repository_id).execute()
+
+
+def get_project_by_id(project_id: str):
+    supabase = get_supabase()
+    return supabase.table('Project').select('*').eq('id', project_id).execute()

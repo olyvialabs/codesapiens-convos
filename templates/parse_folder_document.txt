@@ -1,12 +1,14 @@
 Act as a documentation expert. Write in-depth documentation about the content of this folder.
 
 Header of the file should be "{mdFileName}".
-After the header, use the json content provided to generate description of what this folder is responsible for doing in the system
-Divide the document into sections with clear headings and subheadings.
-
-List each file and folder into its own section.
-Write high level information in each section, DO NOT generate code examples.
-Link each section to its own documentation. The format of the link is simply the name of the folder or file.
+Then:
+- Write a detailed description of the code that will follow.
+- Explain technical concepts that are not standard but come apparent in the code. Example of a standard concept is JSON.
+- Divide the document into sections with clear headings and subheadings.
+- Use the json content provided to generate description of what this folder is responsible for doing in the system
+- List each file and folder into its own section.
+- Write high level information in each section, DO NOT generate code examples.
+- Link each section to its own documentation. The format of the link is simply the name of the folder or file.
 
 Here is json of the data your need
 ###

@@ -237,7 +237,7 @@ def split_path(input_path):
 curr_being_processed = {}
 
 
-def embeed_github_files_to_store(repository, project_name, user_id, process_id):
+def embeed_github_files_to_store(repository, project_name, user_id, process_id, id_project):
     outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
     project_absolute_dir = os.path.join(outputs_absolute_dir, project_name)
     for root, dirs, files in os.walk(project_absolute_dir, topdown=False):
@@ -257,9 +257,9 @@ def embeed_github_files_to_store(repository, project_name, user_id, process_id):
                 'pathName': split_data.get('filename'),
                 'path': split_data.get('directory') or "/",
                 'repositoryId': repository['id'],
-                'projectId': repository['projectId'],
+                'projectId': id_project,
                 'synced': True,
-                'parentId': ensure_folder_exists(split_data.get('directory'), repository['id'], None, repository['projectId']),
+                'parentId': ensure_folder_exists(split_data.get('directory'), repository['id'], None, id_project),
                 "status": 'active',
             }
 
@@ -267,39 +267,36 @@ def embeed_github_files_to_store(repository, project_name, user_id, process_id):
                 doc_data, repository['id'], project_name)
             print('wtf passed here', doc)
             insert_billing_file_processed(
-                user_id, repository['projectId'], doc.data[0]['id'],  process_id)
+                user_id, id_project, doc.data[0]['id'],  process_id)
 
     return
 
 
-def chunk_text(text, chunk_length):
-    print('entroPz', text)
-    print('entroPz', text)
-    print('entroPz', text)
-    print(type(text))
-    print(type(chunk_length))
-    return [text[i:i+chunk_length] for i in range(0, len(text), chunk_length)]
+# It's important to overlap the text so it doesn't just start from the position it got cut
+def chunk_text(text, chunk_length, overlap=500):
+    if len(text) <= chunk_length:
+        # Return the entire text as a single chunk if it's shorter than the chunk length
+        return [text]
+
+    chunks = []
+    start = 0
+
+    while start < len(text):
+        end = start + chunk_length
+        chunks.append(text[start:end])
+        start = end - overlap
+
+    return chunks
 
 
 def convert_to_text_to_docs(text, metadata):
-    print('entroGat1o')
-    pieces = chunk_text(text, 3500)
-    print('entroGato', pieces)
+    # Cutting strings of 2500 piece, with 500 chars overlap
+    pieces = chunk_text(text, 2500, 500)
     return [Document(page_content=piece, metadata=metadata) for piece in pieces]
-    # text_splitter = CharacterTextSplitter(
-    #     chunk_size=chunk_length, chunk_overlap=0)
-    # docs = text_splitter.split_documents(text)
-    # return docs
 
 
 def slit_text_to_embeeding(text, metadata):
     docs = convert_to_text_to_docs(text, metadata)
-    print(docs)
-    # openai_embeddings = OpenAIEmbeddings(
-    #     openai_api_key=settings.OPENAI_API_KEY)
-    # chunks = chunk_text(text, 1000)
-    # # SupabaseVectorStore().add
-    # return openai_embeddings.embed_documents(chunks)
     embeddings = OpenAIEmbeddings(openai_api_key=settings.OPENAI_API_KEY)
     try:
         # sometimes says error but it's correct
@@ -307,9 +304,6 @@ def slit_text_to_embeeding(text, metadata):
             get_supabase(), embeddings, "DocumentEmbeedingChunk").add_documents(docs)
     except Exception as e:
         print('Error', e)
-
-    # from_documents(
-    #     docs, embeddings, client=get_supabase(), table_name="DocumentEmbeedingChunk", query_name="match_documents").add_documents(docs)
 
 
 def embeed_md_files_to_store(project_id, repository_id, docs, files_map, user_id, process_id):
