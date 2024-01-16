@@ -30,7 +30,7 @@ temp_absolute_dir = os.path.join(os.getcwd(), settings.temp_folder)
 outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
 
 
-def process_files_in_batches(all_files, project_name, output_logger, batch_size=5):
+def process_files_in_batches(all_files, project_name, output_logger, batch_size=14):
     with ThreadPoolExecutor(max_workers=batch_size) as executor:
         # Start the first batch of tasks
         futures = [executor.submit(
@@ -419,7 +419,7 @@ def process_file(file, project_name, output_logger):
         print('Error on calls from openai', error)
         if (output_logger is not None):
             output_logger.error(
-                'Error on calls from openai fatal exception', error)
+                'Error on calls from openai fatal exception')
 
 
 def generate_documentation_for_project_per_folder(project: ProjectStructure, project_name='', output_logger: logging = None):
@@ -450,10 +450,10 @@ def generate_documentation_for_project_per_folder(project: ProjectStructure, pro
         _, error = get_gpt_response_from_template(
             data={'mdFileName': folder.name, 'trimmable_content': query_content}, template='parse_folder_document', trim_content=True, save_to_subfolder=folder.path, save_to_name=folder.name + '.md', ignore_output_folder_on_save=True)
         if error:
+            print('Error on calls from openai in folders processing')
             if (output_logger is not None):
                 output_logger.error(
-                    'Error on calls from openai in folders processing', error)
-            print('Error on calls from openai in folders processing', error)
+                    'Error on calls from openai in folders processing')
 
 
 def generate_root_config_files(config_list=[], project_name=''):
