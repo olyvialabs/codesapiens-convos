@@ -106,15 +106,15 @@ def generate_prompt_answer(prompt, id_chat='', id_user='', id_project='', id_rep
         combine_docs_chain_kwargs={"prompt": combine_docs_prompt},
     )
     # Insert user's question into Supabase
-    user_msg = insert_chat_message(id_user, id_chat, prompt,
-                                   MessageType.USER, id_project)
+    # user_msg = insert_chat_message(id_user, id_chat, prompt,
+    #                               MessageType.USER, id_project)
 
     result = qa(
         {"question": prompt, "chat_history": []})
 
     # Insert assistant's answer into Supabase
-    assistance_msg = insert_chat_message(
-        id_user, id_chat, result['answer'], MessageType.ASSISTANT, id_project)
-    insert_billing_question_processed(id_user, id_chat, id_project, prompt)
+    # assistance_msg = insert_chat_message(
+    #    id_user, id_chat, result['answer'], MessageType.ASSISTANT, id_project)
+    # insert_billing_question_processed(id_user, id_chat, id_project, prompt)
 
-    return {'answer': result['answer'], 'user_message': user_msg, 'assistance_message': assistance_msg, 'sources': []}
+    return {'answer': result['answer'], 'user_message': prompt, 'assistance_message': result['answer'], 'sources': []}
