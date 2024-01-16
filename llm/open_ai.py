@@ -61,6 +61,7 @@ class ConversationlessOpenAI:
                 except (openai.error.APIError, openai.error.InvalidRequestError,
                         openai.error.AuthenticationError,
                         Exception) as e:
+                    time.sleep(10)
                     print('OPENAI CALL ERROR', e)
                     return "", 'OPENAI_API_ERROR'
             return "", "OPENAI_API_MAX_TRIED"

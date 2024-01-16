@@ -30,7 +30,7 @@ temp_absolute_dir = os.path.join(os.getcwd(), settings.temp_folder)
 outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
 
 
-def process_files_in_batches(all_files, project_name, output_logger, batch_size=22):
+def process_files_in_batches(all_files, project_name, output_logger, batch_size=14):
     with ThreadPoolExecutor(max_workers=batch_size) as executor:
         # Start the first batch of tasks
         futures = [executor.submit(
