@@ -3,8 +3,9 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
+    CELERY_BROKER_URL: str  # = "redis://:AVNS_oNKZNl-3XYll-hf4wC7@db-redis-nyc3-02239-do-user-12860484-0.c.db.ondigitalocean.com:25061/codesapiens0"
+    # = "redis://:AVNS_oNKZNl-3XYll-hf4wC7@db-redis-nyc3-02239-do-user-12860484-0.c.db.ondigitalocean.com:25061/codesapiens1"
+    CELERY_RESULT_BACKEND: str
     OPENAI_API_KEY: str = None
     OPENAI_MODEL: str = "gpt-3.5-turbo"  # can be gpt4
     output_folder: str = "outputs"
