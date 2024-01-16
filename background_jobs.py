@@ -494,7 +494,7 @@ def record_stripe_files(payload):
 
 
 @celery.task()
-def index_project_files(id_user, repository, id_project):
+def index_project_files(id_user, repository, id_project, process):
     print('=================')
     print('=================')
     print(id_user)
@@ -513,9 +513,6 @@ def index_project_files(id_user, repository, id_project):
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     initialization_output_logger.setFormatter(formatter)
-    # Pull data
-    process = insert_process(
-        id_project, id_repository, datetime.now().isoformat())
     try:
         user = get_user(id_user).data
         processed_files = 0

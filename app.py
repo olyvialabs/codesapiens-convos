@@ -2,9 +2,10 @@ from flask import Flask, request, jsonify
 from background_jobs import get_process_status, index_project_files
 from llm.answer import generate_prompt_answer
 from config.settings import settings
-from persister.supabase import get_chat, get_repository_by_id
+from persister.supabase import get_chat, get_repository_by_id, insert_process
 import sys
 import json
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -71,12 +72,13 @@ def embeedSync():
 
         if not repository.data:
             continue
-
+        process = insert_process(
+            id_project, id_repository, datetime.now().isoformat())
         print('Process about to index')
         # index_project_files(id_user, repository.data[0])
         print(jsonify(repository.data))
         queue_item = index_project_files.delay(
-            id_user, repository.data[0], id_project)
+            id_user, repository.data[0], id_project, process)
         processes.append(queue_item.id)
 
         # process_status = get_process_status(queue_item.id)
