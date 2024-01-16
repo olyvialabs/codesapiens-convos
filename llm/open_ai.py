@@ -7,6 +7,23 @@ from config.open_ai_models import models
 from datetime import datetime
 from llm.tokens import get_tokens_length
 import time
+import signal
+
+# Define a custom exception for timeout
+
+
+class TimeoutException(Exception):
+    pass
+
+# Define the signal handler function
+
+
+def timeout_handler(signum, frame):
+    raise TimeoutException()
+
+
+# Set the signal handler for the SIGALRM signal
+signal.signal(signal.SIGALRM, timeout_handler)
 
 openai.api_key = settings.OPENAI_API_KEY
 
@@ -20,28 +37,26 @@ class ConversationlessOpenAI:
         max_retries = 10
         for attempt in range(max_retries):
             try:
+                signal.alarm(20)  # Set the alarm for 20 seconds
                 response = openai.ChatCompletion.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=self.temperature,
                 )
+                signal.alarm(0)  # Reset the alarm
                 return response.choices[0].message['content'], None
-            except openai.error.Timeout:
-                if attempt < max_retries - 1:  # Only sleep if we will retry again
+            except TimeoutException:
+                print("Request timed out, retrying...")
+                signal.alarm(0)  # Reset the alarm
+                if attempt < max_retries - 1:
                     time.sleep(1)  # Wait for 1 second before retrying
                 continue  # Continue to the next iteration to retry
-            except openai.error.RateLimitError:
+            except openai.error.Timeout:
+                print("OpenAI Timeout, retrying...")
                 if attempt < max_retries - 1:
                     time.sleep(1)
                 continue
-            except openai.error.APIConnectionError:
-                if attempt < max_retries - 1:
-                    time.sleep(1)
-                continue
-            except openai.error.ServiceUnavailableError:
-                if attempt < max_retries - 1:
-                    time.sleep(1)
-                continue
+            # Add other exception handlers as required
             except (openai.error.APIError, openai.error.InvalidRequestError,
                     openai.error.AuthenticationError,
                     Exception) as e:
@@ -111,6 +126,13 @@ def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens
 
 
 def get_gpt_response_from_template(data={}, template: str = '', model=models['gpt-3.5-turbo'].name, max_tokens=models['gpt-3.5-turbo'].max_token, trim_content: bool = False, ignore_output_folder_on_save: bool = False, trim_path: str = '', save_to_subfolder: str = '', save_to_name: str = ''):
+    print('TRING FOR')
+    print('TRING FOR')
+    print('TRING FOR')
+    print('TRING FOR')
+    print('TRING FOR')
+    print(data)
+    print('$$====-=-=-=-=-=-=-=-$$')
     if not template:
         return None, 'TEMPLATE_NAME_REQUIRED'
 

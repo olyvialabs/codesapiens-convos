@@ -57,6 +57,8 @@ class FolderStructure:
             return True
 
         extension = path_object.suffix[1:]  # remove the dot
+        if extension:
+            extension = extension.lower()
         return extension in excluded_list_combined
 
     @staticmethod

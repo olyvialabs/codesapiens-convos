@@ -46,7 +46,9 @@ def get_installation_access_token(installation_id):
         headers=headers
     )
 
-    if response.status_code != 200:
+    # All 200 codes are correct,
+    # important to note that sometimes it give 200, 201, etc.
+    if response.status_code >= 300 or response.status_code < 200:
         # Log the error details and return None or raise a custom exception
         # You can log response.text or response.json() based on the API's error message format
         print(
@@ -59,8 +61,11 @@ def get_installation_access_token(installation_id):
 
 def clone_repo_to_folder(installation_id, folder_path, org_name, repo_name):
     """Clone a specific repo using a GitHub App's installation access token."""
-    folder_path = os.path.join(settings.temp_folder, folder_path)
-    access_token = get_installation_access_token(installation_id)
-    repo_url = f'https://x-access-token:{access_token}@github.com/{org_name}/{repo_name}.git'
-    Repo.clone_from(repo_url, folder_path)
-    shutil.rmtree(os.path.join(folder_path, ".git"))
+    try:
+        folder_path = os.path.join(settings.temp_folder, folder_path)
+        access_token = get_installation_access_token(installation_id)
+        repo_url = f'https://x-access-token:{access_token}@github.com/{org_name}/{repo_name}.git'
+        Repo.clone_from(repo_url, folder_path)
+        shutil.rmtree(os.path.join(folder_path, ".git"))
+    except Exception as e:
+        print(e)

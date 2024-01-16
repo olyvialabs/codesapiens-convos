@@ -20,12 +20,37 @@ from pathlib import Path
 from config.documents_by_extension import list_of_accepted_docs_file_extensions
 import re
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import traceback
 
 
 celery = Celery()
 celery.config_from_object("config.celery_config")
 temp_absolute_dir = os.path.join(os.getcwd(), settings.temp_folder)
 outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
+
+
+def process_files_in_batches(all_files, project_name, output_logger, batch_size=5):
+    with ThreadPoolExecutor(max_workers=batch_size) as executor:
+        # Start the first batch of tasks
+        futures = [executor.submit(
+            process_file, file, project_name, output_logger) for file in all_files[:batch_size]]
+
+        # Process the rest of the files
+        for i in range(batch_size, len(all_files)):
+            # Wait for any future to complete before submitting the next one
+            done = next(as_completed(futures))
+            futures.remove(done)
+
+            # Submit the next task
+            next_file = all_files[i]
+            future = executor.submit(
+                process_file, next_file, project_name, output_logger)
+            futures.append(future)
+
+        # Wait for all remaining tasks to complete
+        for future in as_completed(futures):
+            pass  # Optionally handle results or exceptions here
 
 
 def get_process_status(process_id):
@@ -96,8 +121,10 @@ def process_github_repository(process_id, logger, project_name, repository, user
     output_logger.info(
         "Processing and generating documentation from repository...")
     # Generate all documentation per file
-    generate_documentation_for_project_per_file(
-        project=project, project_name=project_name, output_logger=output_logger)
+    processing_files = project.get_all_files(keep_root_files=False)
+    process_files_in_batches(processing_files, project_name, output_logger)
+    # generate_documentation_for_project_per_file(
+    #     project=project, project_name=project_name, output_logger=output_logger)
     output_logger.info(
         "Documentation from repository processed and generated successfully.")
 
@@ -171,8 +198,9 @@ def process_normal_repository(process_id, user, repository_id, logger, project_n
     output_logger.info(
         "Processing and generating documentation from repository...")
     # Generate all documentation per file
-    generate_documentation_for_project_per_file(
-        project=project, project_name=project_name, output_logger=output_logger)
+    process_files_in_batches(all_files, project_name, output_logger)
+    # generate_documentation_for_project_per_file(
+    #     project=project, project_name=project_name, output_logger=output_logger)
     output_logger.info(
         "Documentation from repository processed and generated successfully.")
 
@@ -301,52 +329,97 @@ def get_folder_summary(folder_absolute_path):
 # Subsequent tasks!
 # Tasks made for processing fales
 #########
-def generate_documentation_for_project_per_file(project: ProjectStructure, project_name='', output_logger: logging = None):
-    all_files = project.get_all_files(keep_root_files=False)
+# def generate_documentation_for_project_per_file(project: ProjectStructure, project_name='', output_logger: logging = None):
+#     all_files = project.get_all_files(keep_root_files=False)
+#     current_dir = Path(os.getcwd())
+
+#     for file in all_files:
+#         try:
+#             if (output_logger is not None):
+#                 output_logger.info(f'Processing file: {file.entry}')
+#             print(f'Now processing file: ${file.entry}')
+#             temp_file_path = Path(file.absolute_path)
+#             file_extension = temp_file_path.suffix[1:]  # remove the dot
+#             print('lol')
+#             result_path = current_dir.joinpath(temp_file_path.parent)
+#             result_path_str = str(result_path)
+
+#             result_path_str = result_path_str.replace(
+#                 settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
+
+#             save_name_format = f"{temp_file_path.stem}.{file_extension}"
+#             finish_file_ext = 'md'
+#             if not save_name_format.endswith('.'):
+#                 finish_file_ext = '.md'
+#             save_name_format = f"{save_name_format}{finish_file_ext}"
+#             error = None
+#             if temp_file_path.name.endswith('package.json'):
+#                 _, error = get_gpt_response_from_template(
+#                     data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+#                 if not error:
+#                     _, error = get_gpt_response_from_template(
+#                         data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
+#             elif file_extension in list_of_accepted_docs_file_extensions:
+#                 _, error = get_gpt_response_from_template(
+#                     data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+#             else:
+#                 _, error = get_gpt_response_from_template(
+#                     data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+#             if error:
+#                 if (output_logger is not None):
+#                     output_logger.error(
+#                         'Error on catched calls from openai', error)
+#                 print('Error on generating', error)
+#         except Exception as e:
+#             print('Error on calls from openai', error)
+#             if (output_logger is not None):
+#                 output_logger.error(
+#                     'Error on calls from openai fatal exception', error)
+
+
+def process_file(file, project_name, output_logger):
     current_dir = Path(os.getcwd())
+    try:
+        if (output_logger is not None):
+            output_logger.info(f'Processing file: {file.entry}')
+        print(f'Now processing file: ${file.entry}')
+        temp_file_path = Path(file.absolute_path)
+        file_extension = temp_file_path.suffix[1:]  # remove the dot
+        print('lol')
+        result_path = current_dir.joinpath(temp_file_path.parent)
+        result_path_str = str(result_path)
 
-    for file in all_files:
-        try:
-            if (output_logger is not None):
-                output_logger.info(f'Processing file: {file.entry}')
-            print(f'Now processing file: ${file.entry}')
-            temp_file_path = Path(file.absolute_path)
-            file_extension = temp_file_path.suffix[1:]  # remove the dot
-            print('lol')
-            result_path = current_dir.joinpath(temp_file_path.parent)
-            result_path_str = str(result_path)
+        result_path_str = result_path_str.replace(
+            settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
 
-            result_path_str = result_path_str.replace(
-                settings.temp_folder+'/'+project_name, settings.output_folder+'/'+project_name)
-
-            save_name_format = f"{temp_file_path.stem}.{file_extension}"
-            finish_file_ext = 'md'
-            if not save_name_format.endswith('.'):
-                finish_file_ext = '.md'
-            save_name_format = f"{save_name_format}{finish_file_ext}"
-            error = None
-            if temp_file_path.name.endswith('package.json'):
+        save_name_format = f"{temp_file_path.stem}.{file_extension}"
+        finish_file_ext = 'md'
+        if not save_name_format.endswith('.'):
+            finish_file_ext = '.md'
+        save_name_format = f"{save_name_format}{finish_file_ext}"
+        error = None
+        if temp_file_path.name.endswith('package.json'):
+            _, error = get_gpt_response_from_template(
+                data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+            if not error:
                 _, error = get_gpt_response_from_template(
-                    data=get_package_json_data(file.absolute_path), template='parse_package_json', trim_content=True, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
-                if not error:
-                    _, error = get_gpt_response_from_template(
-                        data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
-            elif file_extension in list_of_accepted_docs_file_extensions:
-                _, error = get_gpt_response_from_template(
-                    data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
-            else:
-                _, error = get_gpt_response_from_template(
-                    data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
-            if error:
-                if (output_logger is not None):
-                    output_logger.error(
-                        'Error on catched calls from openai', error)
-                print('Error on generating', error)
-        except Exception as e:
-            print('Error on calls from openai', error)
+                    data=get_package_json_data_for_dependencies(file.absolute_path), template='parse_package_json_dependencies', trim_content=True, save_to_subfolder=result_path_str, save_to_name=temp_file_path.stem + '_dependencies' + '.md', ignore_output_folder_on_save=True)
+        elif file_extension in list_of_accepted_docs_file_extensions:
+            _, error = get_gpt_response_from_template(
+                data={'file_name': file.name}, template='parse_document_file', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+        else:
+            _, error = get_gpt_response_from_template(
+                data={'file_name': file.name}, template='document_file_prompt', trim_content=True, trim_path=file.absolute_path, save_to_subfolder=result_path_str, save_to_name=save_name_format, ignore_output_folder_on_save=True)
+        if error:
             if (output_logger is not None):
                 output_logger.error(
-                    'Error on calls from openai fatal exception', error)
+                    'Error on catched calls from openai', error)
+            print('Error on generating', error)
+    except Exception as e:
+        print('Error on calls from openai', error)
+        if (output_logger is not None):
+            output_logger.error(
+                'Error on calls from openai fatal exception', error)
 
 
 def generate_documentation_for_project_per_folder(project: ProjectStructure, project_name='', output_logger: logging = None):
@@ -419,8 +492,8 @@ def record_stripe_files(payload):
 # self,
 
 
-@celery.task(bind=True)
-def index_project_files(self, id_user, repository, id_project):
+@celery.task()
+def index_project_files(id_user, repository, id_project):
     print('=================')
     print('=================')
     print(id_user)
@@ -430,7 +503,7 @@ def index_project_files(self, id_user, repository, id_project):
     print(id_user)
     print(id_user)
     print(json.dumps(repository, separators=(',', ':')))
-    self.update_state(state='STARTED')
+    # self.update_state(state='STARTED')
     id_repository = repository['id']
     is_github_repo = repository['repositoryType'] == "github"
     if not os.path.exists(temp_absolute_dir):
@@ -484,12 +557,14 @@ def index_project_files(self, id_user, repository, id_project):
         if processed_files > 0:
             record_stripe_files(payload)
     except Exception as e:
-        print('Fatal on index project files', e.with_traceback())
+        traceback.print_exc()  # This prints the full traceback
+        # You can also log the exception message if needed
+        print('Fatal on index project files', str(e))
     # Delete created temp & output folder
     if os.path.exists(temp_absolute_dir + '/' + project_name):
         shutil.rmtree(temp_absolute_dir + '/' + project_name)
     if os.path.exists(outputs_absolute_dir + '/' + project_name):
         shutil.rmtree(outputs_absolute_dir + '/' + project_name)
-    self.update_state(state='FINISHED')
+   # self.update_state(state='FINISHED')
 
     return 'FINISHED'
