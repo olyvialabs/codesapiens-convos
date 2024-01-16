@@ -61,50 +61,50 @@ class ConversationlessOpenAI:
                     openai.error.AuthenticationError,
                     Exception) as e:
                 print('OPENAI CALL ERROR', e)
-                return None, 'OPENAI_API_ERROR'
+                return "", 'OPENAI_API_ERROR'
 
 
 def get_file(path: str):
     file_path = f"{path}"
     if not os.path.exists(file_path):
-        return None, 'FILE_NOT_FOUND'
+        return "", 'FILE_NOT_FOUND'
     try:
         with open(file_path, "r") as f:
             return f.read(), None
     except IOError:
-        return None, 'TEMPLATE_IO_ERROR'
+        return "", 'TEMPLATE_IO_ERROR'
     except Exception as e:
         print('get file', e)
-        return None, 'TEMPLATE_IO_UNKNOWN_ERROR'
+        return "", 'TEMPLATE_IO_UNKNOWN_ERROR'
 
 
 def get_template(template: str = ''):
     content, error = get_file(f"templates/{template}.txt")
     if error:
         print('get template', error)
-        return None, error
+        return "", error
     return content, None
 
 
 def generate_prompt_by_template(data={}, template: str = ''):
     question_template, error = get_template(template)
     if error:
-        return None, error
+        return "", error
     try:
         prompt_template = PromptTemplate.from_template(question_template)
         formatted_prompt = prompt_template.format(**data)
         return formatted_prompt, None
     except KeyError:
-        return None, 'TEMPLATE_KEY_ERROR_IMPORTING_TEMPLATE'
+        return "", 'TEMPLATE_KEY_ERROR_IMPORTING_TEMPLATE'
     except Exception as e:
-        return None, 'TEMPLATE_KEY_IMPORATING_UNKNOWN_ERROR'
+        return "", 'TEMPLATE_KEY_IMPORATING_UNKNOWN_ERROR'
 
 
 def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens: int = models['gpt-3.5-turbo'].max_token):
     optimistic_max_tokens = max_tokens * 0.95
     question_template, error = get_template(template)
     if error:
-        return None, error
+        return "", error
 
     prompt_length = 0
     file_content = data.get('trimmable_content', '')
@@ -118,10 +118,10 @@ def generate_prompt_and_fit_file_content(data={}, template: str = '', max_tokens
         except KeyError:
             print(
                 'generate prompt and fit file content error TEMPLATE_KEY_ERROR_IN_TEMPLATE')
-            return None, 'TEMPLATE_KEY_ERROR_IN_TEMPLATE'
+            return "", 'TEMPLATE_KEY_ERROR_IN_TEMPLATE'
         except Exception as e:
             print('generate prompt and fit file content error')
-            return None, 'TEMPLATE_KEY_UNKNOWN_ERROR'
+            return "", 'TEMPLATE_KEY_UNKNOWN_ERROR'
     return formatted_prompt, None
 
 
@@ -134,12 +134,12 @@ def get_gpt_response_from_template(data={}, template: str = '', model=models['gp
     print(data)
     print('$$====-=-=-=-=-=-=-=-$$')
     if not template:
-        return None, 'TEMPLATE_NAME_REQUIRED'
+        return "", 'TEMPLATE_NAME_REQUIRED'
 
     if trim_content and trim_path:
         data['trimmable_content'], error = get_file(trim_path)
         if error:
-            return None, error
+            return "", error
 
     if trim_content:
         prompt, error = generate_prompt_and_fit_file_content(
@@ -149,13 +149,13 @@ def get_gpt_response_from_template(data={}, template: str = '', model=models['gp
             data=data, template=template)
 
     if error:
-        return None, error
+        return "", error
 
     llm = ConversationlessOpenAI(temperature=0.2, model=model)
     response, error = llm.query(prompt)
 
     if error:
-        return None, error
+        return "", error
 
     if save_to_subfolder and save_to_name:
         saving_path = Path(save_to_subfolder) if ignore_output_folder_on_save else Path(
@@ -167,8 +167,8 @@ def get_gpt_response_from_template(data={}, template: str = '', model=models['gp
             with file_path.open("w") as f:
                 f.write(response)
         except IOError:
-            return None, 'SAVE_TO_FILE_ERROR'
+            return "", 'SAVE_TO_FILE_ERROR'
         except Exception as e:
             print('saving to folder error', e)
-            return None, 'SAVE_TO_FILE_UNKNOWN_ERROR'
+            return "", 'SAVE_TO_FILE_UNKNOWN_ERROR'
     return response, None
