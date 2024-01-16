@@ -199,6 +199,7 @@ def process_normal_repository(process_id, user, repository_id, logger, project_n
     output_logger.info(
         "Processing and generating documentation from repository...")
     # Generate all documentation per file
+    all_files = project.get_all_files(keep_root_files=False)
     process_files_in_batches(all_files, project_name, output_logger)
     # generate_documentation_for_project_per_file(
     #     project=project, project_name=project_name, output_logger=output_logger)
