@@ -35,33 +35,37 @@ class ConversationlessOpenAI:
 
     def query(self, prompt):
         max_retries = 10
-        for attempt in range(max_retries):
-            try:
-                signal.alarm(20)  # Set the alarm for 20 seconds
-                response = openai.ChatCompletion.create(
-                    model=self.model,
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=self.temperature,
-                )
-                signal.alarm(0)  # Reset the alarm
-                return response.choices[0].message['content'], None
-            except TimeoutException:
-                print("Request timed out, retrying...")
-                signal.alarm(0)  # Reset the alarm
-                if attempt < max_retries - 1:
-                    time.sleep(1)  # Wait for 1 second before retrying
-                continue  # Continue to the next iteration to retry
-            except openai.error.Timeout:
-                print("OpenAI Timeout, retrying...")
-                if attempt < max_retries - 1:
-                    time.sleep(1)
-                continue
-            # Add other exception handlers as required
-            except (openai.error.APIError, openai.error.InvalidRequestError,
-                    openai.error.AuthenticationError,
-                    Exception) as e:
-                print('OPENAI CALL ERROR', e)
-                return "", 'OPENAI_API_ERROR'
+        try:
+            for attempt in range(max_retries):
+                try:
+                    signal.alarm(25)  # Set the alarm for 20 seconds
+                    response = openai.ChatCompletion.create(
+                        model=self.model,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=self.temperature,
+                    )
+                    signal.alarm(0)  # Reset the alarm
+                    return response.choices[0].message['content'], None
+                except TimeoutException:
+                    print("Request timed out, retrying...")
+                    signal.alarm(0)  # Reset the alarm
+                    if attempt < max_retries - 1:
+                        time.sleep(1)  # Wait for 1 second before retrying
+                    continue  # Continue to the next iteration to retry
+                except openai.error.Timeout:
+                    print("OpenAI Timeout, retrying...")
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                    continue
+                # Add other exception handlers as required
+                except (openai.error.APIError, openai.error.InvalidRequestError,
+                        openai.error.AuthenticationError,
+                        Exception) as e:
+                    print('OPENAI CALL ERROR', e)
+                    return "", 'OPENAI_API_ERROR'
+            return "", "OPENAI_API_MAX_TRIED"
+        except Exception as e:
+            return "", "OPENAI_API_ERROR"
 
 
 def get_file(path: str):
