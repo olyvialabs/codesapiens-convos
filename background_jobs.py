@@ -30,7 +30,7 @@ temp_absolute_dir = os.path.join(os.getcwd(), settings.temp_folder)
 outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
 
 
-def process_files_in_batches(all_files, project_name, output_logger, batch_size=14):
+def process_files_in_batches(all_files, project_name, output_logger, batch_size=40):
     with ThreadPoolExecutor(max_workers=batch_size) as executor:
         # Start the first batch of tasks
         futures = [executor.submit(
@@ -128,13 +128,14 @@ def process_github_repository(process_id, logger, project_name, repository, user
     output_logger.info(
         "Documentation from repository processed and generated successfully.")
 
-    output_logger.info("Indexing each folder...")
-    # Generate documentation for all folders
-    output_project = ProjectStructure(
-        target_path=settings.output_folder+'/'+project_name)
-    generate_documentation_for_project_per_folder(
-        project=output_project, project_name=project_name, output_logger=output_logger)
-    output_logger.info("Folders indexed successfully.")
+    if False:
+        output_logger.info("Indexing each folder...")
+        # Generate documentation for all folders
+        output_project = ProjectStructure(
+            target_path=settings.output_folder+'/'+project_name)
+        generate_documentation_for_project_per_folder(
+            project=output_project, project_name=project_name, output_logger=output_logger)
+        output_logger.info("Folders indexed successfully.")
 
     # Generate indexes
     output_logger.info("Updating indexed data...")
