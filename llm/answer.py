@@ -99,7 +99,7 @@ def generate_prompt_answer(prompt, id_chat='', id_user='', id_project='', id_rep
     qa = ConversationalRetrievalChain.from_llm(
         llm=ChatOpenAI(temperature=0.25, model_name="gpt-3.5-turbo-16k"),
         retriever=supabase_store.as_retriever(
-            search_kwargs={'k': 11, 'filter': filter}),
+            search_kwargs={'k': 7, 'filter': filter}),
         return_source_documents=True,
         verbose=True,
         # memory=memory,
