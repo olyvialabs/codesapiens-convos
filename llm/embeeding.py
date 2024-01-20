@@ -125,7 +125,7 @@ created_to_pick = {}
 
 
 def ensure_folder_exists(folder_path, repository_id, project_name, project_id):
-    print('[FOLDER] tried', folder_path)
+    print('[Ensuring folder exists]', folder_path)
     if folder_path == '/':
         return
     values = split_path(folder_path)
@@ -265,7 +265,6 @@ def embeed_github_files_to_store(repository, project_name, user_id, process_id, 
 
             doc = insert_or_update_document(
                 doc_data, repository['id'], project_name)
-            print('wtf passed here', doc)
             insert_billing_file_processed(
                 user_id, id_project, doc.data[0]['id'],  process_id)
 

@@ -31,6 +31,8 @@ outputs_absolute_dir = os.path.join(os.getcwd(), settings.output_folder)
 
 
 def process_files_in_batches(all_files, project_name, output_logger, batch_size=12):
+    current_processed_files = 0
+    max_processed_files = 1000
     with ThreadPoolExecutor(max_workers=batch_size) as executor:
         # Start the first batch of tasks
         futures = [executor.submit(
@@ -51,6 +53,11 @@ def process_files_in_batches(all_files, project_name, output_logger, batch_size=
         # Wait for all remaining tasks to complete
         for future in as_completed(futures):
             pass  # Optionally handle results or exceptions here
+
+        # current processed files....
+        current_processed_files = current_processed_files + batch_size
+        if (current_processed_files >= max_processed_files):
+            return
 
 
 def get_process_status(process_id):
